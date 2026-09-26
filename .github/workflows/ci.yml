@@ -40,6 +40,9 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: node e2e/make-scenes.mjs
       - run: node e2e/run.mjs
+      - name: Frames from the exported clip
+        if: always()
+        run: node e2e/clip-frames.mjs || true
       - name: Screenshots
         if: always()
         uses: actions/upload-artifact@v4

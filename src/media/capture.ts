@@ -229,7 +229,10 @@ export class CameraCapture implements CaptureDevice {
       low.ctx.drawImage(this.video, 0, 0, this.lowW, this.lowH);
       full?.ctx.drawImage(this.video, 0, 0, this.width, this.height);
     } catch {
-      return; // the video isn't drawable yet
+      // The video isn't drawable yet: hand the canvases back for the next frame.
+      this.freeLow.push(low);
+      if (full) this.freeFull.push(full);
+      return;
     }
     const frame: BufferedFrame = { seq: this.seq++, local, source, low, full };
     this.ring.push(frame);

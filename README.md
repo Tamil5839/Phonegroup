@@ -53,6 +53,7 @@ npm run lint             # Prettier check + TypeScript
 npm run build            # production build into dist/
 node e2e/make-scenes.mjs # once: synthetic camera feeds for the browser test
 npm run e2e              # end-to-end test in headless Chromium (screenshots in e2e/artifacts/)
+node e2e/clip-frames.mjs # tile frames of the clip the e2e test exported, to eyeball alignment
 ```
 
 ## Using it

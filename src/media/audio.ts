@@ -89,6 +89,8 @@ class Sound {
    * using a fresh reading of the audio clock. Returns a cancel function.
    */
   scheduleCountdown(targetLocal: number, opts: { chirp: boolean; vibrate?: boolean }): () => void {
+    // iOS suspends audio when the app was in the background; try to wake it up.
+    if (this.ctx && this.ctx.state !== 'running') void this.ctx.resume().catch(() => {});
     const timers: ReturnType<typeof setTimeout>[] = [];
     const events: { t: number; kind: 'beep' | 'moment' }[] = [
       { t: targetLocal - 3000, kind: 'beep' },

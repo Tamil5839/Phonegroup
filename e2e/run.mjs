@@ -269,6 +269,16 @@ try {
   const positions = await Promise.all(shooters.map((p) => p.locator('.position-badge .big').innerText()));
   check(new Set(positions).size === SHOOTERS, `each phone has its own position (${positions.join(', ')})`);
 
+  log("host: use the host's own camera too, placed first in the lineup");
+  await host.getByRole('switch', { name: /Use my camera too/ }).check();
+  await host.getByText('Host (you)').waitFor({ timeout: 15_000 });
+  for (let i = 0; i < SHOOTERS; i++) await host.getByRole('button', { name: 'Move Host (you) earlier' }).click();
+  const firstName = await host.locator('.shooter .name').first().innerText();
+  check(firstName === 'Host (you)', `host camera joined the lineup and moved to #1 (${firstName})`);
+  await shooters[0].waitForFunction(() => document.querySelector('.position-badge .big')?.textContent === '#2', null, { timeout: 10_000 });
+  check(true, "shooters' positions update live (first shooter is now #2)");
+  const cams = SHOOTERS + 1;
+
   // --------------------------------------------------------------- capture
   log('host: freeze the moment');
   await host.getByRole('button', { name: 'Freeze the moment' }).click();
@@ -278,7 +288,7 @@ try {
   check(true, 'all photos collected, editor open');
   await shot(host, '07-host-editor-pick-subject');
   const films = await host.locator('.film').count();
-  check(films === SHOOTERS, `editor has ${films} frames`);
+  check(films === cams, `editor has ${films} frames (3 shooters + the host's camera)`);
   for (const p of shooters) await p.getByText(/Sent\. The host is making the clip/).waitFor({ timeout: 20_000 });
   check(true, 'every shooter delivered its photo');
   await shot(shooters[1], '08-shooter-waiting');
@@ -324,6 +334,13 @@ try {
   check((await host.locator('.film').count()) === films + 1, 'hand-picked frame replaces the imported one');
   await host.locator('.film').last().click();
 
+  log("host: Sweep + Life (a phone's neighbour frames come alive)");
+  await host.getByRole('button', { name: 'Sweep + Life' }).click();
+  await host.waitForFunction(() => [...document.querySelectorAll('.film .flag')].some((el) => el.textContent?.includes('★')), null, {
+    timeout: 15_000,
+  });
+  check(true, 'a hero frame is chosen for the live part');
+
   log('host: create clip');
   await host.getByRole('button', { name: 'Create clip' }).click();
   await host.getByText('Your frozen moment').waitFor({ timeout: 60_000 });
@@ -331,8 +348,12 @@ try {
     const el = document.querySelector('.clip');
     const blob = await (await fetch(el.src)).blob();
     const note = document.querySelector('main p.muted.small')?.textContent ?? '';
-    return { size: blob.size, type: blob.type, note, tag: el.tagName };
+    const bytes = new Uint8Array(await blob.arrayBuffer());
+    let bin = '';
+    for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+    return { size: blob.size, type: blob.type, note, tag: el.tagName, b64: btoa(bin) };
   });
+  writeFileSync(join(ART, `clip.${clip.type.includes('mp4') ? 'mp4' : 'webm'}`), Buffer.from(clip.b64, 'base64'));
   check(clip.size > 20_000, `clip exported: ${clip.type}, ${(clip.size / 1024).toFixed(0)} KB (${clip.note || 'MP4 via WebCodecs'})`);
   await host.waitForTimeout(1200);
   await shot(host, '11-host-result');
