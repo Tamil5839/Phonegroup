@@ -99,7 +99,7 @@ Any static host works; the build uses relative paths, so a sub-path is fine.
   _Settings → Pages → Build and deployment → Source: GitHub Actions_.
 - **Cloudflare Pages / Netlify / anything else:** build command `npm run build`, output directory `dist`.
 
-The service worker precaches the app shell (about 95 KB gzipped for the main bundle, ~210 KB including the lazily used export and QR
+The service worker precaches the app shell (about 100 KB gzipped for the main bundle, ~210 KB including the lazily used export and QR
 reader chunks). OpenCV.js (10.9 MB, pinned) is only downloaded when a host starts editing, then cached.
 
 ## Signaling: public broker or self-hosted
