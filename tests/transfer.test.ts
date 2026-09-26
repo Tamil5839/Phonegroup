@@ -200,6 +200,17 @@ describe('TransferEndpoint', () => {
     expect(received).toHaveLength(1);
   });
 
+  it('limits how many unfinished transfers one phone can open', async () => {
+    const { receiver, a } = setup();
+    const started: unknown[] = [];
+    receiver.incomingStarted.on((rx) => started.push(rx));
+    for (let id = 1; id <= 40; id++) {
+      a.send(JSON.stringify({ t: 'xfer-begin', id, size: 10, chunkSize: 1024, count: 1, crc: 0, meta: { kind: 'x' } }));
+    }
+    await vi.advanceTimersByTimeAsync(100);
+    expect(started).toHaveLength(32);
+  });
+
   it('rejects oversized or malformed transfers', async () => {
     const { receiver, a } = setup();
     const started: unknown[] = [];

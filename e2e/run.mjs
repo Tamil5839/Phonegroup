@@ -16,7 +16,9 @@ import { PeerServer } from 'peer';
 const ROOT = new URL('..', import.meta.url).pathname;
 const ART = join(ROOT, 'e2e/artifacts');
 const DIST = join(ROOT, 'dist-e2e');
-const CHROME = process.env.CHROMIUM_PATH || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
+// Prefer an explicitly given Chromium, then this dev container's, then Playwright's own.
+const PRESET_CHROME = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
+const CHROME = process.env.CHROMIUM_PATH || (existsSync(PRESET_CHROME) ? PRESET_CHROME : undefined);
 const PEER_PORT = 9123;
 const WEB_PORT = 4180;
 const BASE = `http://127.0.0.1:${WEB_PORT}/`;

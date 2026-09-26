@@ -17,6 +17,8 @@ export const DEFAULT_CHUNK_SIZE = 16 * 1024;
 /** Hard caps protect the receiver from malformed or hostile senders. */
 export const MAX_TRANSFER_BYTES = 96 * 1024 * 1024;
 const MAX_MISSING_PER_MESSAGE = 4096;
+/** Unfinished incoming transfers allowed per phone (a capture sends at most 7). */
+const MAX_INCOMING = 32;
 
 export type TransferMeta = { kind: string } & Record<string, unknown>;
 
@@ -372,6 +374,10 @@ export class TransferEndpoint {
     const existing = this.incoming.get(msg.id);
     if (existing && existing.size === msg.size && existing.crc === msg.crc && existing.chunkSize === msg.chunkSize) {
       return; // a restart of something we already know: keep what we have
+    }
+    if (!existing && this.incoming.size >= MAX_INCOMING) {
+      this.port?.sendControl({ t: 'xfer-cancel', id: msg.id, reason: 'too many transfers' });
+      return;
     }
     const rx = new IncomingTransfer(msg.id, msg.size, msg.chunkSize, msg.count, msg.crc >>> 0, msg.meta);
     this.incoming.set(msg.id, rx);

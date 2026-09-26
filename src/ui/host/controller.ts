@@ -15,6 +15,7 @@ import { keepScreenOn } from '../../media/wakeLock';
 import { ConnectError, HostSignaling, type SignalingStatus } from '../../net/peer';
 import { decodeJpeg, importFiles, type ImportedMedia } from '../../process/importMedia';
 import { Project, type ProjectFrame } from '../../process/project';
+import { forgetRoomCode, recentRoomCode, rememberRoomCode } from '../storage';
 import { measureSyncFrame } from '../../process/timecodeReader';
 import type { ExportResult } from '../../process/export';
 import { HOST_ID, HostSession, type FrameEntry } from '../../session/host';
@@ -142,17 +143,25 @@ export class HostController {
       return;
     }
     let conn: HostSignaling | null = null;
-    for (let attempt = 0; attempt < 5 && !conn; attempt++) {
-      const code = generateRoomCode();
+    // After an accidental reload, reclaim the same code so shooters can reconnect on their own.
+    const previous = recentRoomCode();
+    for (let attempt = 0; attempt < 8 && !conn; attempt++) {
+      const reuse = previous && attempt < 4;
+      const code = reuse ? previous : generateRoomCode();
       try {
         conn = await HostSignaling.open(code);
       } catch (err) {
-        if ((err as { taken?: boolean }).taken) continue;
+        if ((err as { taken?: boolean }).taken) {
+          // The server may still hold the old connection for a moment.
+          if (reuse) await new Promise((r) => setTimeout(r, 1500));
+          continue;
+        }
         this.error.value = err instanceof ConnectError ? err.message : 'Could not create the moment.';
         this.status.value = 'error';
         return;
       }
     }
+    if (conn) rememberRoomCode(conn.code);
     if (!conn || this.disposed) {
       conn?.destroy();
       if (!this.disposed) {
@@ -406,8 +415,10 @@ export class HostController {
     this.session?.newMoment();
   }
 
+  /** Leaving the host screen ends the moment (a reload does not come through here). */
   dispose(): void {
     this.disposed = true;
+    forgetRoomCode();
     this.cancelSounds?.();
     for (const u of this.unsubs) u();
     this.session?.close();

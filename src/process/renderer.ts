@@ -142,20 +142,46 @@ function sourceSize(s: RenderSource): [number, number] {
 
 class GLRenderer implements FrameRenderer {
   readonly kind = 'webgl2' as const;
-  private readonly main: WebGLProgram;
-  private readonly overlay: WebGLProgram;
-  private readonly buf: WebGLBuffer;
-  private readonly vao: WebGLVertexArrayObject;
+  private main!: WebGLProgram;
+  private overlay!: WebGLProgram;
+  private buf!: WebGLBuffer;
+  private vao!: WebGLVertexArrayObject;
   private readonly textures = new Map<string, { tex: WebGLTexture; w: number; h: number }>();
   private readonly luts = new Map<string, WebGLTexture>();
   private caption: WebGLTexture | null = null;
   private width = 2;
   private height = 2;
+  /** What was uploaded, so everything can be restored if the GPU context is lost. */
+  private readonly sourceRefs = new Map<string, RenderSource>();
+  private readonly lutRefs = new Map<string, Luts>();
+  private captionRef: HTMLCanvasElement | OffscreenCanvas | null = null;
+  private lost = false;
 
   constructor(
     readonly canvas: HTMLCanvasElement | OffscreenCanvas,
     private readonly gl: WebGL2RenderingContext,
   ) {
+    this.init();
+    // Phones may drop WebGL contexts under memory pressure; rebuild when it comes back.
+    const target = canvas as EventTarget;
+    target.addEventListener('webglcontextlost', (e) => {
+      e.preventDefault();
+      this.lost = true;
+    });
+    target.addEventListener('webglcontextrestored', () => {
+      this.lost = false;
+      this.textures.clear();
+      this.luts.clear();
+      this.caption = null;
+      this.init();
+      for (const [k, src] of this.sourceRefs) this.setSource(k, src);
+      for (const [k, l] of this.lutRefs) this.setLuts(k, l);
+      if (this.captionRef) this.setCaption(this.captionRef);
+    });
+  }
+
+  private init(): void {
+    const gl = this.gl;
     this.main = program(gl, FS);
     this.overlay = program(gl, OVERLAY_FS);
     this.buf = gl.createBuffer()!;
@@ -177,10 +203,12 @@ class GLRenderer implements FrameRenderer {
   }
 
   hasSource(key: string): boolean {
-    return this.textures.has(key);
+    return this.sourceRefs.has(key);
   }
 
   setSource(key: string, source: RenderSource): void {
+    this.sourceRefs.set(key, source);
+    if (this.lost) return;
     const gl = this.gl;
     let entry = this.textures.get(key);
     if (!entry) {
@@ -198,6 +226,9 @@ class GLRenderer implements FrameRenderer {
   }
 
   setLuts(key: string, luts: Luts | null): void {
+    if (luts) this.lutRefs.set(key, luts);
+    else this.lutRefs.delete(key);
+    if (this.lost) return;
     const gl = this.gl;
     const old = this.luts.get(key);
     if (!luts) {
@@ -222,6 +253,8 @@ class GLRenderer implements FrameRenderer {
   }
 
   setCaption(caption: HTMLCanvasElement | OffscreenCanvas | null): void {
+    this.captionRef = caption;
+    if (this.lost) return;
     const gl = this.gl;
     if (!caption) {
       if (this.caption) gl.deleteTexture(this.caption);
@@ -255,6 +288,7 @@ class GLRenderer implements FrameRenderer {
   }
 
   draw(key: string, s: Sim, opts: DrawOptions): void {
+    if (this.lost) return;
     const gl = this.gl;
     const entry = this.textures.get(key);
     gl.viewport(0, 0, this.width, this.height);
@@ -313,6 +347,9 @@ class GLRenderer implements FrameRenderer {
 
   dispose(): void {
     const gl = this.gl;
+    this.sourceRefs.clear();
+    this.lutRefs.clear();
+    this.captionRef = null;
     for (const t of this.textures.values()) gl.deleteTexture(t.tex);
     for (const t of this.luts.values()) gl.deleteTexture(t);
     if (this.caption) gl.deleteTexture(this.caption);

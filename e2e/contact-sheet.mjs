@@ -1,6 +1,6 @@
 // Tiles e2e screenshots into one image for quick visual review:
 //   node e2e/contact-sheet.mjs [out.png] [pattern]
-import { readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { chromium } from 'playwright';
 
@@ -16,8 +16,9 @@ const html = `<body style="margin:0;background:#222;font:12px sans-serif;color:#
 <div style="display:grid;grid-template-columns:repeat(${cols},${w}px);gap:8px;padding:8px">
 ${files.map((f) => `<figure style="margin:0"><img src="data:image/png;base64,${readFileSync(join(dir, f)).toString('base64')}" style="width:${w}px;display:block"><figcaption>${f}</figcaption></figure>`).join('')}
 </div></body>`;
+const preset = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
 const browser = await chromium.launch({
-  executablePath: process.env.CHROMIUM_PATH || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
+  executablePath: process.env.CHROMIUM_PATH || (existsSync(preset) ? preset : undefined),
 });
 const page = await browser.newPage({ viewport: { width: cols * (w + 8) + 8, height: 400 } });
 await page.setContent(html);
