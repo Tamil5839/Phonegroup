@@ -226,9 +226,7 @@ export class Project {
     if (!old) return;
     batch(() => {
       this.frames.value = this.frames.value.map((f) =>
-        f.id === id
-          ? { ...f, bitmap, neighbors, neighborOffsets: Object.keys(neighbors).map(Number), momentTime, warning: undefined }
-          : f,
+        f.id === id ? { ...f, bitmap, neighbors, neighborOffsets: Object.keys(neighbors).map(Number), momentTime, warning: undefined } : f,
       );
       if (this.subject.value?.frameId === id) this.subject.value = null;
       const pins = { ...this.manualPoints.value };
