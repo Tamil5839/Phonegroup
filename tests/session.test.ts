@@ -212,6 +212,41 @@ describe('host and shooters end to end (simulated)', () => {
     expect(shooter.session.phase.value).toBe('waiting');
   });
 
+  it("reports a phone that couldn't sync instead of letting it shoot the wrong instant", async () => {
+    const host = new HostSession('ROOM02', () => Date.now());
+    const s = new ShooterSession({
+      clock: () => Date.now() + 5000,
+      clientId: 'nosync',
+      name: 'No Sync',
+      deviceInfo: { ua: 't', mobile: true },
+      device: new FakeCamera(() => Date.now() + 5000, 5000),
+      lobbySyncMs: 0,
+      connect: async () => {
+        const [a, b] = createMemoryLinkPair({ latencyMs: 2 }, { latencyMs: 2 });
+        // Every clock-sync ping is lost; everything else gets through.
+        const send = a.send.bind(a);
+        a.send = (d) => {
+          if (typeof d === 'string' && d.includes('"t":"ping"')) return;
+          send(d);
+        };
+        host.addConnection(b);
+        return a;
+      },
+    });
+    const joined = s.start();
+    await vi.advanceTimersByTimeAsync(3000);
+    await joined;
+    expect(s.sync.value).toBeNull();
+    expect(host.shooters.value[0].syncError).toMatch(/sync replies/);
+    const started = host.startCapture();
+    await vi.advanceTimersByTimeAsync(6000);
+    await started;
+    await vi.advanceTimersByTimeAsync(4000);
+    expect(host.frames.value['nosync'].status).toBe('failed');
+    expect(host.frames.value['nosync'].error).toMatch(/could not sync/);
+    expect(s.error.value).toMatch(/skipped this moment/);
+  });
+
   it('lets the host cancel a countdown', async () => {
     const rig = makeRig(2, () => [{ latencyMs: 4 }, { latencyMs: 4 }]);
     await joinAll(rig);

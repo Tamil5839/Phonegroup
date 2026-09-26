@@ -319,8 +319,20 @@ export class ShooterSession {
     this.captureAbort?.abort();
     const abort = new AbortController();
     this.captureAbort = abort;
+    this.error.value = null;
     const est = this.sync.value;
-    const offset = est?.offset ?? 0;
+    if (!est) {
+      // Without a clock estimate this phone would shoot the wrong instant: say so instead.
+      const report: CaptureReport = { captureId: m.captureId, ok: false, error: 'This phone could not sync its clock with the host.' };
+      batch(() => {
+        this.lastReport.value = report;
+        this.error.value =
+          'Your phone could not sync its clock with the host, so it skipped this moment. Move closer to the Wi-Fi and try again.';
+      });
+      this.bus.send({ t: 'report', report });
+      return;
+    }
+    const offset = est.offset;
     batch(() => {
       this.countdown.value = { captureId: m.captureId, mode: m.mode, target: m.target, targetLocal: m.target - offset };
       this.phase.value = 'countdown';
@@ -337,7 +349,7 @@ export class ShooterSession {
         target: m.target,
         toHost: (local) => local + offset,
         toLocal: (host) => host - offset,
-        syncUncertainty: est?.uncertainty ?? Infinity,
+        syncUncertainty: est.uncertainty,
         signal: abort.signal,
       });
     } catch (err) {
