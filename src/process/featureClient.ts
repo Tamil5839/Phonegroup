@@ -1,5 +1,4 @@
 /** Main-thread handle on the feature worker (OpenCV runs there). */
-import opencvUrl from '@techstark/opencv-js/dist/opencv.js?url';
 import type { GrayImage, MatchSet } from './features';
 import type { WorkerRequest, WorkerResponse } from './align.worker';
 
@@ -38,7 +37,8 @@ export class FeatureClient {
         for (const p of this.pending.values()) p.reject(new Error(e.message || 'Feature worker crashed'));
         this.pending.clear();
       };
-      await this.request({ type: 'init', url: new URL(opencvUrl, location.href).href });
+      // The pinned OpenCV build is shipped as a static file next to the app (see build/plugins.ts).
+      await this.request({ type: 'init', url: new URL(__OPENCV_FILE__, document.baseURI).href });
     })();
     this.ready.catch(() => {
       this.ready = null;

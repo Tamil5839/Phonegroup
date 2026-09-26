@@ -369,7 +369,7 @@ export class HostSession {
    * Re-sync every phone, then schedule the moment T and start the countdown on
    * all screens. Resolves once the countdown has been sent.
    */
-  async startCapture(mode: CaptureMode = 'moment'): Promise<CaptureRun> {
+  async startCapture(mode: CaptureMode = 'moment', opts: { target?: number } = {}): Promise<CaptureRun> {
     if (this.phase.value !== 'lobby' && this.phase.value !== 'review') throw new Error('A capture is already running.');
     const participants = this.readyParticipants();
     if (participants.length === 0) throw new Error('No cameras are connected yet.');
@@ -416,7 +416,15 @@ export class HostSession {
     if (abort.aborted) throw new Error('Capture canceled.');
 
     const startedAt = this.clock();
-    const target = startedAt + this.settings.value.countdownMs;
+    // A pre-announced moment (manual/mixed mode) keeps its time; otherwise count down from now.
+    const target = opts.target ?? startedAt + this.settings.value.countdownMs;
+    if (target < startedAt + 500) {
+      batch(() => {
+        this.frames.value = {};
+        this.phase.value = 'lobby';
+      });
+      throw new Error('The moment is too close to start the countdown.');
+    }
     const run: CaptureRun = { id: captureId, mode, target, participants, startedAt, deadline: target + DELIVERY_TIMEOUT_MS };
     batch(() => {
       this.run.value = run;

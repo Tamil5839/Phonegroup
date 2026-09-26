@@ -1,13 +1,14 @@
 /**
  * Clip export with graceful fallbacks:
  *   1. WebCodecs H.264 encoder + Mediabunny MP4 muxer (fast, exact timing, plays everywhere)
- *   2. MediaRecorder on the canvas (real-time; MP4 where supported, else WebM)
- *   3. Animated GIF (gifenc) as a last resort
+ *   2. WebCodecs VP9/VP8 + WebM, for browsers with WebCodecs but no H.264 encoder
+ *   3. MediaRecorder on the canvas (real-time; MP4 where supported, else WebM)
+ *   4. Animated GIF (gifenc) as a last resort
  */
 import type { TimelineFrame } from '../core/sequence';
 import { timelineDuration } from '../core/sequence';
 
-export type ExportMethod = 'webcodecs' | 'mediarecorder' | 'gif';
+export type ExportMethod = 'webcodecs' | 'webcodecs-webm' | 'mediarecorder' | 'gif';
 
 export interface ExportJob {
   canvas: HTMLCanvasElement;
@@ -30,12 +31,13 @@ export interface ExportResult {
 }
 
 export async function exportClip(job: ExportJob): Promise<ExportResult> {
-  const methods = job.methods ?? ['webcodecs', 'mediarecorder', 'gif'];
+  const methods = job.methods ?? ['webcodecs', 'webcodecs-webm', 'mediarecorder', 'gif'];
   let lastErr: unknown = null;
   for (const m of methods) {
     if (job.signal?.aborted) throw new DOMException('Export canceled', 'AbortError');
     try {
       if (m === 'webcodecs') return await viaWebCodecs(job);
+      if (m === 'webcodecs-webm') return await viaWebCodecsWebm(job);
       if (m === 'mediarecorder') return await viaMediaRecorder(job);
       return await viaGif(job);
     } catch (err) {
@@ -48,15 +50,30 @@ export async function exportClip(job: ExportJob): Promise<ExportResult> {
 }
 
 async function viaWebCodecs(job: ExportJob): Promise<ExportResult> {
+  return encodeWithMediabunny(job, 'mp4');
+}
+
+async function viaWebCodecsWebm(job: ExportJob): Promise<ExportResult> {
+  return encodeWithMediabunny(job, 'webm');
+}
+
+async function encodeWithMediabunny(job: ExportJob, container: 'mp4' | 'webm'): Promise<ExportResult> {
   if (typeof VideoEncoder === 'undefined' || typeof VideoFrame === 'undefined') throw new Error('WebCodecs is not available');
-  const { Output, Mp4OutputFormat, BufferTarget, CanvasSource, Quality, canEncodeVideo } = await import('mediabunny');
+  const { Output, Mp4OutputFormat, WebMOutputFormat, BufferTarget, CanvasSource, Quality, canEncodeVideo } = await import('mediabunny');
   const { width, height } = job.canvas;
   const bitrate = job.bitrate ?? 6_000_000;
-  if (!(await canEncodeVideo('avc', { width, height, quality: new Quality({ bitrate }) }))) {
-    throw new Error('No H.264 encoder available');
+  const candidates = container === 'mp4' ? (['avc'] as const) : (['vp9', 'vp8'] as const);
+  let codec: (typeof candidates)[number] | null = null;
+  for (const c of candidates) {
+    if (await canEncodeVideo(c, { width, height, quality: new Quality({ bitrate }) })) {
+      codec = c;
+      break;
+    }
   }
-  const output = new Output({ format: new Mp4OutputFormat({ fastStart: 'in-memory' }), target: new BufferTarget() });
-  const source = new CanvasSource(job.canvas, { codec: 'avc', quality: new Quality({ bitrate }), keyFrameInterval: 1 });
+  if (!codec) throw new Error(container === 'mp4' ? 'No H.264 encoder available' : 'No VP9/VP8 encoder available');
+  const format = container === 'mp4' ? new Mp4OutputFormat({ fastStart: 'in-memory' }) : new WebMOutputFormat();
+  const output = new Output({ format, target: new BufferTarget() });
+  const source = new CanvasSource(job.canvas, { codec, quality: new Quality({ bitrate }), keyFrameInterval: 1 });
   output.addVideoTrack(source);
   await output.start();
   const total = timelineDuration(job.timeline);
@@ -77,7 +94,14 @@ async function viaWebCodecs(job: ExportJob): Promise<ExportResult> {
   }
   const buffer = output.target.buffer;
   if (!buffer || buffer.byteLength === 0) throw new Error('Encoder produced no data');
-  return { blob: new Blob([buffer], { type: 'video/mp4' }), mime: 'video/mp4', ext: 'mp4', method: 'webcodecs', durationMs: total };
+  const mime = container === 'mp4' ? 'video/mp4' : 'video/webm';
+  return {
+    blob: new Blob([buffer], { type: mime }),
+    mime,
+    ext: container,
+    method: container === 'mp4' ? 'webcodecs' : 'webcodecs-webm',
+    durationMs: total,
+  };
 }
 
 async function viaMediaRecorder(job: ExportJob): Promise<ExportResult> {

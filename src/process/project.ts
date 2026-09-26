@@ -20,7 +20,12 @@ export interface ProjectFrame {
   id: string;
   name: string;
   bitmap: ImageBitmap;
+  /** Decoded neighbour frames (only for the frame that "comes alive"; decoded on demand). */
   neighbors: Record<number, ImageBitmap>;
+  /** Neighbour offsets this frame can provide. */
+  neighborOffsets: number[];
+  /** Decodes the neighbour frames when they are first needed. */
+  loadNeighbors?: () => Promise<Record<number, ImageBitmap>>;
   /** Device roll in degrees at capture (clockwise positive). */
   roll: number | null;
   /** Capture timing error reported by the phone (ms). */
@@ -124,7 +129,7 @@ export class Project {
     const mid = (frames.length - 1) / 2;
     let best = -1;
     frames.forEach((f, i) => {
-      if (Object.keys(f.neighbors).some((k) => Number(k) > 0) && (best < 0 || Math.abs(i - mid) < Math.abs(best - mid))) best = i;
+      if (f.neighborOffsets.some((k) => k > 0) && (best < 0 || Math.abs(i - mid) < Math.abs(best - mid))) best = i;
     });
     return best >= 0 ? best : Math.floor(mid);
   });
@@ -183,6 +188,20 @@ export class Project {
     this.settings.value = { ...prev, ...patch };
     if (patch.levelWithSensors !== undefined && patch.levelWithSensors !== prev.levelWithSensors && this.subject.value) {
       void this.runAlignment();
+    }
+  }
+
+  /** Decode a frame's neighbour frames (for the "life" effect) if not done yet. */
+  async ensureNeighbors(id: string): Promise<void> {
+    const f = this.frames.value.find((x) => x.id === id);
+    if (!f?.loadNeighbors || Object.keys(f.neighbors).length > 0) return;
+    const load = f.loadNeighbors;
+    this.frames.value = this.frames.value.map((x) => (x.id === id ? { ...x, loadNeighbors: undefined } : x));
+    try {
+      const neighbors = await load();
+      this.frames.value = this.frames.value.map((x) => (x.id === id ? { ...x, neighbors } : x));
+    } catch (err) {
+      console.warn('Could not decode neighbour frames', err);
     }
   }
 

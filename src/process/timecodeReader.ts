@@ -31,6 +31,13 @@ export function encodePayload(p: TimecodePayload): string {
 }
 
 export function parsePayload(text: string): TimecodePayload | null {
+  // Manual mode shows the join link itself: …#/m/<room>/<moment base36>/<epoch base36>
+  const url = /#\/m\/([0-9A-Za-z]+)\/([0-9a-z]+)\/([0-9a-z]+)/.exec(text);
+  if (url) {
+    const moment = parseInt(url[2], 36);
+    const epoch = parseInt(url[3], 36);
+    return Number.isFinite(moment) && Number.isFinite(epoch) ? { room: url[1].slice(0, 16), epoch, moment } : null;
+  }
   const parts = text.split('|');
   if (parts.length !== 4 || parts[0] !== 'FM1') return null;
   const epoch = Number(parts[2]);

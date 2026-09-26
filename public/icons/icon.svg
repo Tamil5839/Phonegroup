@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#07080a"/>
+  <g transform="translate(256 214)">
+    <g stroke="#3de0ff" stroke-width="7" stroke-linecap="round" opacity="0.5">
+      <line x1="-150" y1="92" x2="0" y2="0"/>
+      <line x1="-76" y1="158" x2="0" y2="0"/>
+      <line x1="0" y1="176" x2="0" y2="0"/>
+      <line x1="76" y1="158" x2="0" y2="0"/>
+      <line x1="150" y1="92" x2="0" y2="0"/>
+    </g>
+    <circle r="40" fill="#3de0ff"/>
+    <circle r="72" fill="none" stroke="#3de0ff" stroke-width="6" opacity="0.35"/>
+    <g fill="#20242d" stroke="#f6f1e8" stroke-width="7">
+      <rect x="-22" y="-36" width="44" height="72" rx="10" transform="translate(-150 92) rotate(-58)"/>
+      <rect x="-22" y="-36" width="44" height="72" rx="10" transform="translate(-76 158) rotate(-26)"/>
+      <rect x="-22" y="-36" width="44" height="72" rx="10" transform="translate(0 176)"/>
+      <rect x="-22" y="-36" width="44" height="72" rx="10" transform="translate(76 158) rotate(26)"/>
+      <rect x="-22" y="-36" width="44" height="72" rx="10" transform="translate(150 92) rotate(58)"/>
+    </g>
+  </g>
+</svg>
