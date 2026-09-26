@@ -92,12 +92,21 @@ export class Project {
     `Frozen moment · ${new Date().toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}`,
   );
 
-  private readonly features = new FeatureClient();
+  private readonly features: FeatureClient;
+  private readonly ownsFeatures: boolean;
   private readonly detected = new Set<string>();
   private readonly pairCache = new Map<string, MatchSet>();
   private readonly statsCache = new Map<string, ColorStats>();
   private readonly grayCache = new Map<string, GrayImage>();
   private alignRun = 0;
+
+  /** Pass a shared (possibly pre-warmed) feature worker, or let the project make its own. */
+  constructor(features?: FeatureClient) {
+    this.features = features ?? new FeatureClient();
+    this.ownsFeatures = !features;
+    // A shared worker may still hold features of an earlier moment's frames.
+    if (features) void features.clear().catch(() => {});
+  }
 
   readonly ordered = computed(() => {
     const byId = new Map(this.frames.value.map((f) => [f.id, f]));
@@ -481,7 +490,7 @@ export class Project {
   }
 
   dispose(): void {
-    this.features.dispose();
+    if (this.ownsFeatures) this.features.dispose();
     for (const f of this.frames.value) {
       f.bitmap.close();
       for (const b of Object.values(f.neighbors)) b.close();

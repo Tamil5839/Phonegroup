@@ -13,6 +13,7 @@ import { CameraCapture } from '../../media/capture';
 import { tilt } from '../../media/tilt';
 import { keepScreenOn } from '../../media/wakeLock';
 import { ConnectError, HostSignaling, type SignalingStatus } from '../../net/peer';
+import { FeatureClient } from '../../process/featureClient';
 import { decodeJpeg, importFiles, type ImportedMedia } from '../../process/importMedia';
 import { Project, type ProjectFrame } from '../../process/project';
 import { forgetRoomCode, recentRoomCode, rememberRoomCode } from '../storage';
@@ -118,6 +119,8 @@ export class HostController {
   private cancelSounds: (() => void) | null = null;
   private unsubs: (() => void)[] = [];
   private exportAbort: AbortController | null = null;
+  /** OpenCV runs here; warmed up during the countdown so alignment is quick afterwards. */
+  private readonly features = new FeatureClient();
   /** Sync test: the host screen's time code log. */
   readonly timecodeLog = new TimecodeLog();
   readonly timecodeEpoch = Math.floor(localNow() / 1000) * 1000;
@@ -259,6 +262,8 @@ export class HostController {
     const session = this.session!;
     const run = session.run.value;
     if (phase === 'countdown' && run) {
+      // Fetch and compile OpenCV while everyone counts down and uploads (cached after the first time).
+      if (run.mode === 'moment') void this.features.init().catch(() => {});
       this.cancelSounds?.();
       // The host plays the moment chirp at T: manual-mode videos are matched on it.
       this.cancelSounds = sound.scheduleCountdown(run.target, { chirp: run.mode === 'moment' });
@@ -279,7 +284,7 @@ export class HostController {
     const frames = session.frames.value;
     const entries = order.map((id) => frames[id]).filter((f): f is FrameEntry => !!f && f.status === 'done');
     this.project.value?.dispose();
-    const project = new Project();
+    const project = new Project(this.features);
     project.updateSettings({ aspect: session.settings.value.orientation === 'landscape' ? '16:9' : '9:16' });
     project.addFrames(await projectFramesFromCapture(entries, this.names()));
     this.project.value = project;
@@ -356,7 +361,7 @@ export class HostController {
   async editImports(files: File[]): Promise<void> {
     if (files.length === 0) return;
     this.project.value?.dispose();
-    this.project.value = new Project();
+    this.project.value = new Project(this.features);
     await this.importMedia(files);
     this.view.value = 'edit';
   }
@@ -427,6 +432,7 @@ export class HostController {
     this.capture?.stop();
     this.camera?.stop();
     this.project.value?.dispose();
+    this.features.dispose();
     keepScreenOn(false);
   }
 }
