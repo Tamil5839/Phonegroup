@@ -22,7 +22,8 @@ export interface FrameRenderer {
   readonly canvas: HTMLCanvasElement | OffscreenCanvas;
   resize(width: number, height: number): void;
   setSource(key: string, source: RenderSource): void;
-  hasSource(key: string): boolean;
+  /** True if `key` is uploaded (and, when `source` is given, uploaded from that same object). */
+  hasSource(key: string, source?: RenderSource): boolean;
   setLuts(key: string, luts: Luts | null): void;
   setCaption(caption: HTMLCanvasElement | OffscreenCanvas | null): void;
   draw(key: string, sim: Sim, opts: DrawOptions): void;
@@ -202,8 +203,9 @@ class GLRenderer implements FrameRenderer {
     if (this.canvas.height !== height) this.canvas.height = height;
   }
 
-  hasSource(key: string): boolean {
-    return this.sourceRefs.has(key);
+  hasSource(key: string, source?: RenderSource): boolean {
+    const known = this.sourceRefs.get(key);
+    return source ? known === source : known !== undefined;
   }
 
   setSource(key: string, source: RenderSource): void {
@@ -381,8 +383,9 @@ class Canvas2DRenderer implements FrameRenderer {
     if (this.canvas.height !== height) this.canvas.height = height;
   }
 
-  hasSource(key: string): boolean {
-    return this.sources.has(key);
+  hasSource(key: string, source?: RenderSource): boolean {
+    const known = this.sources.get(key);
+    return source ? known === source : known !== undefined;
   }
 
   setSource(key: string, source: RenderSource): void {

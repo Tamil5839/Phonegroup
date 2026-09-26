@@ -145,9 +145,9 @@ export async function importVideo(file: File): Promise<ImportedMedia> {
     const det = detectChirp(samples, rate);
     if (det && det.score >= 0.2 && det.score > det.runnerUp * 1.4) chirp = { time: det.time, score: det.score };
     else
-      warning = `Couldn't hear the moment chirp in this video (best match ${(det?.score ?? 0).toFixed(2)}) — check the frame, or pick it by hand.`;
+      warning = `Couldn't hear the moment chirp in this video (best match ${(det?.score ?? 0).toFixed(2)}) — check the frame, or pick it by hand in the editor.`;
   } catch (err) {
-    warning = `Couldn't read this video's sound (${(err as Error).message}) — pick the frame by hand.`;
+    warning = `Couldn't read this video's sound (${(err as Error).message}) — pick the frame by hand in the editor.`;
   }
   const { video, release } = await openVideo(file);
   try {

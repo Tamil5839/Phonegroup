@@ -2,6 +2,7 @@ import { useSignalEffect } from '@preact/signals';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { simApply, type Pt } from '../../core/geometry';
 import { CLIP_STYLES, frameAt, timelineDuration, type TimelineFrame } from '../../core/sequence';
+import { grabFrame, openVideo, resolveDuration } from '../../process/importMedia';
 import { createRenderer, type FrameRenderer } from '../../process/renderer';
 import type { Project, ProjectFrame } from '../../process/project';
 import { Bar, BitmapThumb, Segmented, Toggle, TopBar } from '../components';
@@ -230,6 +231,111 @@ function Filmstrip({ project, selected, onSelect }: { project: Project; selected
   );
 }
 
+/** Scrub through an imported video and choose the frame by hand (when the chirp wasn't found, or to fine-tune). */
+function VideoFramePicker({
+  frame,
+  onDone,
+}: {
+  frame: ProjectFrame & { file: File };
+  onDone: (bitmap: ImageBitmap | null, time?: number) => void;
+}) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const video = useRef<{ el: HTMLVideoElement; release: () => void; duration: number } | null>(null);
+  const [duration, setDuration] = useState(0);
+  const [time, setTime] = useState(frame.momentTime ?? 0);
+  const [error, setError] = useState<string | null>(null);
+  const busy = useRef(Promise.resolve());
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const { video: el, release } = await openVideo(frame.file);
+        const d = await resolveDuration(el);
+        if (cancelled) return release();
+        video.current = { el, release, duration: d };
+        setDuration(d);
+        if (frame.momentTime === undefined) setTime(d / 2);
+      } catch (err) {
+        setError((err as Error).message);
+      }
+    })();
+    return () => {
+      cancelled = true;
+      video.current?.release();
+      video.current = null;
+    };
+  }, [frame.file]);
+
+  useEffect(() => {
+    const v = video.current;
+    if (!v || !duration) return;
+    // Seeks are serialised so fast scrubbing doesn't pile them up.
+    busy.current = busy.current.then(async () => {
+      const bmp = await grabFrame(v.el, time, v.duration);
+      const c = canvasRef.current;
+      if (c) {
+        c.width = bmp.width;
+        c.height = bmp.height;
+        c.getContext('2d')?.drawImage(bmp, 0, 0);
+      }
+      bmp.close();
+    });
+  }, [time, duration]);
+
+  const step = 1 / 30;
+  return (
+    <div class="stack">
+      {error ? (
+        <div class="notice error small">{error}</div>
+      ) : (
+        <>
+          <canvas ref={canvasRef} style={{ width: '100%', borderRadius: 12, background: '#000' }} aria-label="Video frame preview" />
+          <label class="field">
+            <span class="label">
+              {time.toFixed(3)} s{frame.momentTime !== undefined ? ` (chirp at ${frame.momentTime.toFixed(3)} s)` : ''}
+            </span>
+            <input
+              type="range"
+              min={0}
+              max={Math.max(0, duration - 0.01)}
+              step={step}
+              value={time}
+              disabled={!duration}
+              onInput={(e) => setTime(Number((e.currentTarget as HTMLInputElement).value))}
+            />
+          </label>
+          <div class="row">
+            <button class="btn small" onClick={() => setTime((t) => Math.max(0, t - step))} aria-label="Previous frame">
+              ◀ Frame
+            </button>
+            <button class="btn small" onClick={() => setTime((t) => Math.min(duration, t + step))} aria-label="Next frame">
+              Frame ▶
+            </button>
+          </div>
+        </>
+      )}
+      <div class="row">
+        <button
+          class="btn primary small"
+          disabled={!duration}
+          onClick={async () => {
+            const v = video.current;
+            if (!v) return;
+            await busy.current;
+            onDone(await grabFrame(v.el, time, v.duration), time);
+          }}
+        >
+          Use this frame
+        </button>
+        <button class="btn small ghost" onClick={() => onDone(null)}>
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function FramePanel({
   project,
   frame,
@@ -247,6 +353,8 @@ function FramePanel({
 }) {
   const al = project.alignment.value?.[frame.id];
   const excluded = project.excluded.value.includes(frame.id);
+  const [pickingVideo, setPickingVideo] = useState(false);
+  const file = frame.origin === 'video' ? frame.file : undefined;
   const style = project.settings.value.style;
   const step = 3;
   const deg = Math.PI / 180;
@@ -263,6 +371,20 @@ function FramePanel({
         )}
       </div>
       {frame.warning && <div class="notice warn small">{frame.warning}</div>}
+      {file &&
+        (pickingVideo ? (
+          <VideoFramePicker
+            frame={{ ...frame, file }}
+            onDone={(bmp, time) => {
+              setPickingVideo(false);
+              if (bmp) project.replaceImage(frame.id, bmp, time);
+            }}
+          />
+        ) : (
+          <button class="btn block" onClick={() => setPickingVideo(true)}>
+            Pick the video frame by hand
+          </button>
+        ))}
       <button class="btn block" onClick={onPick}>
         Tap the subject in this photo
       </button>

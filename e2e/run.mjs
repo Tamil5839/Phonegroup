@@ -110,6 +110,67 @@ async function openPhone(name, scene) {
 
 const shot = (page, name) => page.screenshot({ path: join(ART, `${name}.png`) });
 
+/**
+ * Record a 4 s WebM in the page: a picture whose brightness steps every
+ * 100 ms, with room noise and the moment chirp 2.0 s in (step 20).
+ */
+async function recordChirpVideo(page) {
+  const b64 = await page.evaluate(async () => {
+    const { chirpSamples, MOMENT_CHIRP } = window.__fmTest;
+    const canvas = document.createElement('canvas');
+    canvas.width = 320;
+    canvas.height = 240;
+    const ctx = canvas.getContext('2d');
+    const ac = new AudioContext();
+    await ac.resume();
+    const dest = ac.createMediaStreamDestination();
+    // Continuous room noise, like a phone microphone (the stream has no samples while nothing plays).
+    const noise = ac.createBuffer(1, ac.sampleRate, ac.sampleRate);
+    const nd = noise.getChannelData(0);
+    for (let i = 0; i < nd.length; i++) nd[i] = (Math.random() - 0.5) * 0.06;
+    const room = ac.createBufferSource();
+    room.buffer = noise;
+    room.loop = true;
+    room.connect(dest);
+    room.start();
+    const stream = canvas.captureStream(30);
+    stream.addTrack(dest.stream.getAudioTracks()[0]);
+    const mime = ['video/webm;codecs=vp8,opus', 'video/webm'].find((m) => MediaRecorder.isTypeSupported(m));
+    const rec = new MediaRecorder(stream, { mimeType: mime });
+    const chunks = [];
+    rec.ondataavailable = (e) => e.data.size && chunks.push(e.data);
+    const stopped = new Promise((r) => (rec.onstop = r));
+    // The picture shows a step counter (brightness) that advances every 100 ms.
+    const t0 = performance.now();
+    let raf = 0;
+    const draw = () => {
+      const n = Math.floor((performance.now() - t0) / 100);
+      ctx.fillStyle = `rgb(${n * 6},${n * 6},${n * 6})`;
+      ctx.fillRect(0, 0, 320, 240);
+      raf = requestAnimationFrame(draw);
+    };
+    draw();
+    rec.start(100);
+    // The chirp plays 2.0 s into the recording, when the counter reads 20.
+    const samples = chirpSamples(MOMENT_CHIRP, ac.sampleRate, 0.9);
+    const buf = ac.createBuffer(1, samples.length, ac.sampleRate);
+    buf.copyToChannel(samples, 0);
+    const src = ac.createBufferSource();
+    src.buffer = buf;
+    src.connect(dest);
+    src.start(ac.currentTime + (t0 + 2000 - performance.now()) / 1000);
+    await new Promise((r) => setTimeout(r, 4000));
+    rec.stop();
+    await stopped;
+    cancelAnimationFrame(raf);
+    const bytes = new Uint8Array(await new Blob(chunks).arrayBuffer());
+    let bin = '';
+    for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+    return btoa(bin);
+  });
+  return Buffer.from(b64, 'base64');
+}
+
 /** Minimal ISO-BMFF walk: top-level order, sample entry type, sample count and track duration. */
 function inspectMp4(buf) {
   const boxes = (start, end) => {
@@ -168,6 +229,10 @@ try {
   pages.push(host);
   await host.goto(`${BASE}#/`);
   await shot(host, '01-home');
+  log('recording a test video with the moment chirp (for manual-mode import)');
+  const momentVideo = await recordChirpVideo(host);
+  const momentPath = join(ART, 'frozen-TEST01-pos04-alex.webm');
+  writeFileSync(momentPath, momentVideo);
   await host.getByRole('button', { name: 'Create moment' }).click();
   await host.locator('.room-code').waitFor({ timeout: 20_000 });
   const code = (await host.locator('.room-code').innerText()).replace(/\s+/g, '');
@@ -241,6 +306,23 @@ try {
   );
   await host.waitForTimeout(1500);
   await shot(host, '10-host-editor-preview');
+
+  log('host: add a manual-mode video in the editor and pick its frame by hand');
+  await host.locator('input[type=file]').setInputFiles(momentPath);
+  await host.waitForFunction((n) => document.querySelectorAll('.film').length === n, films + 1, { timeout: 30_000 });
+  check(true, 'imported video joins the edit as an extra frame');
+  await host.locator('.film').last().click();
+  await host.getByRole('button', { name: 'Pick the video frame by hand' }).click();
+  await host.locator('.panel input[type=range]').first().waitFor({ timeout: 15_000 });
+  const pickLabel = await host.locator('.panel .field .label').first().innerText();
+  check(/chirp at 2\.0\d\d s/.test(pickLabel), `frame picker opens at the chirp (${pickLabel})`);
+  await host.getByRole('button', { name: 'Next frame' }).click();
+  await host.waitForTimeout(400);
+  await shot(host, '10b-host-editor-video-picker');
+  await host.getByRole('button', { name: 'Use this frame' }).click();
+  await host.getByRole('button', { name: 'Pick the video frame by hand' }).waitFor({ timeout: 15_000 });
+  check((await host.locator('.film').count()) === films + 1, 'hand-picked frame replaces the imported one');
+  await host.locator('.film').last().click();
 
   log('host: create clip');
   await host.getByRole('button', { name: 'Create clip' }).click();
@@ -414,55 +496,10 @@ try {
 
   // ------------------------------------------- manual mode: video + chirp
   log('manual mode: a recorded video is matched on the moment chirp');
-  const imported = await host.evaluate(async () => {
-    const { importFiles, chirpSamples, MOMENT_CHIRP } = window.__fmTest;
-    const canvas = document.createElement('canvas');
-    canvas.width = 320;
-    canvas.height = 240;
-    const ctx = canvas.getContext('2d');
-    const ac = new AudioContext();
-    await ac.resume();
-    const dest = ac.createMediaStreamDestination();
-    // Continuous room noise, like a phone microphone (the stream has no samples while nothing plays).
-    const noise = ac.createBuffer(1, ac.sampleRate, ac.sampleRate);
-    const nd = noise.getChannelData(0);
-    for (let i = 0; i < nd.length; i++) nd[i] = (Math.random() - 0.5) * 0.06;
-    const room = ac.createBufferSource();
-    room.buffer = noise;
-    room.loop = true;
-    room.connect(dest);
-    room.start();
-    const stream = canvas.captureStream(30);
-    stream.addTrack(dest.stream.getAudioTracks()[0]);
-    const mime = ['video/webm;codecs=vp8,opus', 'video/webm'].find((m) => MediaRecorder.isTypeSupported(m));
-    const rec = new MediaRecorder(stream, { mimeType: mime });
-    const chunks = [];
-    rec.ondataavailable = (e) => e.data.size && chunks.push(e.data);
-    const stopped = new Promise((r) => (rec.onstop = r));
-    // The picture shows a step counter (brightness) that advances every 100 ms.
-    const t0 = performance.now();
-    let raf = 0;
-    const draw = () => {
-      const n = Math.floor((performance.now() - t0) / 100);
-      ctx.fillStyle = `rgb(${n * 6},${n * 6},${n * 6})`;
-      ctx.fillRect(0, 0, 320, 240);
-      raf = requestAnimationFrame(draw);
-    };
-    draw();
-    rec.start(100);
-    // The chirp plays 2.0 s into the recording, when the counter reads 20.
-    const samples = chirpSamples(MOMENT_CHIRP, ac.sampleRate, 0.9);
-    const buf = ac.createBuffer(1, samples.length, ac.sampleRate);
-    buf.copyToChannel(samples, 0);
-    const src = ac.createBufferSource();
-    src.buffer = buf;
-    src.connect(dest);
-    src.start(ac.currentTime + (t0 + 2000 - performance.now()) / 1000);
-    await new Promise((r) => setTimeout(r, 4000));
-    rec.stop();
-    await stopped;
-    cancelAnimationFrame(raf);
-    const file = new File(chunks, 'frozen-TEST01-pos04-alex.webm', { type: 'video/webm' });
+  const imported = await host.evaluate(async (b64) => {
+    const { importFiles } = window.__fmTest;
+    const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+    const file = new File([bytes], 'frozen-TEST01-pos04-alex.webm', { type: 'video/webm' });
     const { items, failed } = await importFiles([file]);
     const item = items[0];
     if (!item) return { failed };
@@ -480,7 +517,7 @@ try {
       warning: item.warning ?? null,
       neighbors: Object.keys(item.neighbors).length,
     };
-  });
+  }, momentVideo.toString('base64'));
   if (imported.failed?.length) log('  import failures:', imported.failed);
   if (imported.warning) log('  import warning:', imported.warning);
   check(

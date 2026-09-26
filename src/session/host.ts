@@ -371,7 +371,8 @@ export class HostSession {
    */
   async startCapture(mode: CaptureMode = 'moment', opts: { target?: number } = {}): Promise<CaptureRun> {
     if (this.phase.value !== 'lobby' && this.phase.value !== 'review') throw new Error('A capture is already running.');
-    const participants = this.readyParticipants();
+    // The host's own camera can't photograph the host's screen, so it sits out sync tests.
+    const participants = this.readyParticipants().filter((id) => mode !== 'synctest' || id !== HOST_ID);
     if (participants.length === 0) throw new Error('No cameras are connected yet.');
     this.clearTimers();
     this.captureAbort = new AbortController();

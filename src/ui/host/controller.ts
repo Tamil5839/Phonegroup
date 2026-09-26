@@ -88,6 +88,7 @@ export function projectFramesFromImports(items: ImportedMedia[]): ProjectFrame[]
     origin: m.kind,
     warning: m.warning,
     file: m.file,
+    momentTime: m.chirp?.time,
   }));
 }
 

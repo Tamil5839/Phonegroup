@@ -13,12 +13,14 @@ export function CollectArc({ entries }: { entries: FrameEntry[] }) {
         const a = Math.PI * (1 - (i + 0.5) / n);
         const left = 50 + Math.cos(a) * 41;
         const top = 78 - Math.sin(a) * 58;
+        // Smaller tiles for big groups so neighbours don't overlap.
+        const width = Math.max(6, Math.min(18, 150 / n));
         return (
           <div
             key={f.shooterId}
             role="listitem"
             class={`slot ${f.status}`}
-            style={{ left: `${left}%`, top: `${top}%` }}
+            style={{ left: `${left}%`, top: `${top}%`, width: `${width}%` }}
             aria-label={`${f.name}: ${f.status}`}
           >
             {f.main ? (

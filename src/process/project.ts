@@ -40,7 +40,9 @@ export interface ProjectFrame {
   errorMs: number | null;
   origin: 'live' | 'photo' | 'video';
   warning?: string;
+  /** For imported videos: the source file and where in it the frame was taken (s). */
   file?: File;
+  momentTime?: number;
 }
 
 export interface EditSettings {
@@ -216,6 +218,30 @@ export class Project {
     } catch (err) {
       console.warn('Could not decode neighbour frames', err);
     }
+  }
+
+  /** Swap a frame's picture (e.g. a video frame picked by hand) and redo its analysis. */
+  replaceImage(id: string, bitmap: ImageBitmap, momentTime?: number, neighbors: Record<number, ImageBitmap> = {}): void {
+    const old = this.frames.value.find((f) => f.id === id);
+    if (!old) return;
+    batch(() => {
+      this.frames.value = this.frames.value.map((f) =>
+        f.id === id
+          ? { ...f, bitmap, neighbors, neighborOffsets: Object.keys(neighbors).map(Number), momentTime, warning: undefined }
+          : f,
+      );
+      if (this.subject.value?.frameId === id) this.subject.value = null;
+      const pins = { ...this.manualPoints.value };
+      delete pins[id];
+      this.manualPoints.value = pins;
+    });
+    this.statsCache.delete(id);
+    this.grayCache.delete(id);
+    this.detected.delete(id);
+    for (const key of [...this.pairCache.keys()]) if (key.split('>').includes(id)) this.pairCache.delete(key);
+    old.bitmap.close();
+    for (const b of Object.values(old.neighbors)) b.close();
+    if (this.subject.value) void this.runAlignment();
   }
 
   /** The host tapped the subject in `frameId` at `point` (bitmap pixels). */
@@ -407,11 +433,11 @@ export class Project {
     r.resize(plan.width, plan.height);
     const luts = this.luts.value;
     for (const f of this.ordered.value) {
-      if (!r.hasSource(f.id)) r.setSource(f.id, f.bitmap);
+      if (!r.hasSource(f.id, f.bitmap)) r.setSource(f.id, f.bitmap);
       r.setLuts(f.id, luts?.[f.id] ?? null);
       for (const [sub, bmp] of Object.entries(f.neighbors)) {
         const key = sourceKey(f.id, Number(sub));
-        if (!r.hasSource(key)) r.setSource(key, bmp);
+        if (!r.hasSource(key, bmp)) r.setSource(key, bmp);
         r.setLuts(key, luts?.[f.id] ?? null);
       }
     }
