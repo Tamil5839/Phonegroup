@@ -47,6 +47,16 @@ export class Ring<T> {
     return out;
   }
 
+  /** Remove and return the oldest item. */
+  shift(): T | undefined {
+    if (this.count === 0) return undefined;
+    const oldest = this.items[this.start];
+    this.items[this.start] = undefined;
+    this.start = (this.start + 1) % this.capacity;
+    this.count--;
+    return oldest;
+  }
+
   /** Remove items from the oldest end while `pred` holds; returns them. */
   dropWhile(pred: (item: T) => boolean): T[] {
     const dropped: T[] = [];

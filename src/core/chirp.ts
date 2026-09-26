@@ -18,7 +18,7 @@ export const MOMENT_CHIRP: ChirpSpec = { f0: 1800, f1: 5200, durationMs: 160 };
 /** Sample rate we analyse at (the browser resamples decoded audio to this). */
 export const ANALYSIS_RATE = 16000;
 
-export function chirpSamples(spec: ChirpSpec, sampleRate: number, amplitude = 0.8): Float32Array {
+export function chirpSamples(spec: ChirpSpec, sampleRate: number, amplitude = 0.8): Float32Array<ArrayBuffer> {
   const n = Math.round((spec.durationMs / 1000) * sampleRate);
   const out = new Float32Array(n);
   const dur = n / sampleRate;
