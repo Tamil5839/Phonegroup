@@ -36,7 +36,8 @@ export function TimecodeDisplay({ payload, epoch, log }: { payload: string; epoc
     ctx.fillStyle = '#fff';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = '#000';
-    for (let r = 0; r < modules; r++) for (let c = 0; c < modules; c++) if (qr.isDark(r, c)) ctx.fillRect(quiet + c * px, quiet + r * px, px, px);
+    for (let r = 0; r < modules; r++)
+      for (let c = 0; c < modules; c++) if (qr.isDark(r, c)) ctx.fillRect(quiet + c * px, quiet + r * px, px, px);
     const cells = Array.from({ length: TC_CELLS }, (_, i) => {
       const rect = cellRect(i);
       const gap = rect.w * 0.06 * size;

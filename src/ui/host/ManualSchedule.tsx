@@ -73,15 +73,18 @@ export function ManualSchedule({ ctl }: { ctl: HostController }) {
       <TopBar title="Manual moment" onBack={onBack} />
       {moment === null ? (
         <>
-          <p class="lead">For phones that can't connect: announce the moment in advance. Everyone scans the code and their phone counts down to the same instant.</p>
+          <p class="lead">
+            For phones that can't connect: announce the moment in advance. Everyone scans the code and their phone counts down to the same
+            instant.
+          </p>
           <div class="card stack">
             <div class="field">
               <span class="label">The moment happens in</span>
               <Segmented label="Lead time" value={lead} options={LEADS} onChange={setLead} />
             </div>
             <p class="muted small">
-              Turn your volume up: at the moment your phone plays a short chirp. People who record a video instead of using the app are matched on
-              that sound.
+              Turn your volume up: at the moment your phone plays a short chirp. People who record a video instead of using the app are
+              matched on that sound.
             </p>
             <button class="btn small" onClick={() => sound.testChirp()}>
               Test the chirp
@@ -119,8 +122,8 @@ export function ManualSchedule({ ctl }: { ctl: HostController }) {
           <details class="card">
             <summary>No app? Record a video instead</summary>
             <p class="muted small" style={{ marginTop: 8 }}>
-              Start recording with the normal camera app about 5 seconds before the moment and stop 5 seconds after. Send the video to the host —
-              the moment is found from the chirp.
+              Start recording with the normal camera app about 5 seconds before the moment and stop 5 seconds after. Send the video to the
+              host — the moment is found from the chirp.
             </p>
           </details>
           {remaining !== null && remaining < 3600 && <Countdown targetLocal={moment} />}
@@ -131,8 +134,8 @@ export function ManualSchedule({ ctl }: { ctl: HostController }) {
             <div class="eyebrow">Captured</div>
             <h2>Now gather the photos</h2>
             <p class="muted">
-              Ask everyone to send their photo (the app offers “Send to host”) or their video to you — any messaging app works. Then import them
-              here.
+              Ask everyone to send their photo (the app offers “Send to host”) or their video to you — any messaging app works. Then import
+              them here.
             </p>
           </div>
           {connectedAtStart > 0 && entries.length > 0 && <CollectArc entries={entries} />}

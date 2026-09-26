@@ -100,11 +100,14 @@ class Sound {
       const lead = ev.t - localNow();
       if (lead < 0) continue;
       timers.push(
-        setTimeout(() => {
-          if (ev.kind === 'beep') this.beepAt(ev.t, 880, 0.09, 0.22);
-          else if (opts.chirp) this.chirpAt(ev.t);
-          else this.beepAt(ev.t, 1760, 0.05, 0.12);
-        }, Math.max(0, lead - 350)),
+        setTimeout(
+          () => {
+            if (ev.kind === 'beep') this.beepAt(ev.t, 880, 0.09, 0.22);
+            else if (opts.chirp) this.chirpAt(ev.t);
+            else this.beepAt(ev.t, 1760, 0.05, 0.12);
+          },
+          Math.max(0, lead - 350),
+        ),
       );
       if (opts.vibrate !== false && 'vibrate' in navigator) {
         timers.push(setTimeout(() => navigator.vibrate?.(ev.kind === 'moment' ? 120 : 40), Math.max(0, lead)));

@@ -46,10 +46,7 @@ describe('frame selection', () => {
       }
       frames.sort((a, b) => a.hostTime - b.hostTime);
       const target = frames[0].hostTime + rand() * (frames[frames.length - 1].hostTime - frames[0].hostTime);
-      const brute = frames.reduce(
-        (best, f, i) => (Math.abs(f.hostTime - target) < Math.abs(frames[best].hostTime - target) ? i : best),
-        0,
-      );
+      const brute = frames.reduce((best, f, i) => (Math.abs(f.hostTime - target) < Math.abs(frames[best].hostTime - target) ? i : best), 0);
       expect(closestIndex(frames, target)).toBe(brute);
       const sel = selectAround(frames, target, 3)!;
       expect(sel.chosen).toBe(brute);

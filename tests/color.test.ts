@@ -1,13 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  applyLuts,
-  buildMatchLuts,
-  computeStats,
-  histogramDistance,
-  medianReference,
-  oklabToRgb,
-  rgbToOklab,
-} from '../src/core/color';
+import { applyLuts, buildMatchLuts, computeStats, histogramDistance, medianReference, oklabToRgb, rgbToOklab } from '../src/core/color';
 
 /** A 96×64 test "photo": gradients, a skin-toned patch and some texture. */
 function scene(transform: (r: number, g: number, b: number) => [number, number, number], seed = 1): Uint8ClampedArray {

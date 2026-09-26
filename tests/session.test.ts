@@ -115,7 +115,10 @@ describe('host and shooters end to end (simulated)', () => {
 
   it('joins, syncs, counts down and captures the same instant on every phone', async () => {
     const rand = rng(9);
-    const rig = makeRig(5, () => [{ latencyMs: () => 3 + rand() * 12, rng: rand }, { latencyMs: () => 3 + rand() * 12, rng: rand }]);
+    const rig = makeRig(5, () => [
+      { latencyMs: () => 3 + rand() * 12, rng: rand },
+      { latencyMs: () => 3 + rand() * 12, rng: rand },
+    ]);
     await joinAll(rig);
     expect(rig.host.shooters.value).toHaveLength(5);
     // Join order follows network timing; every phone is placed exactly once.
@@ -184,7 +187,10 @@ describe('host and shooters end to end (simulated)', () => {
 
   it('resumes a transfer after the connection drops and reconnects', async () => {
     // A slow uplink so the frame is still in flight when we cut the connection.
-    const rig = makeRig(1, () => [{ latencyMs: 5, bytesPerMs: 20, ordered: true }, { latencyMs: 5, ordered: true }]);
+    const rig = makeRig(1, () => [
+      { latencyMs: 5, bytesPerMs: 20, ordered: true },
+      { latencyMs: 5, ordered: true },
+    ]);
     await joinAll(rig);
     const started = rig.host.startCapture();
     await vi.advanceTimersByTimeAsync(5000);

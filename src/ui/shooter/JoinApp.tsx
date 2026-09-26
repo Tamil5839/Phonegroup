@@ -51,11 +51,13 @@ function ConsentForm({ ctl }: { ctl: ShooterController }) {
       <div class="stack">
         <div class="eyebrow">You're invited</div>
         <h2>Become one of the cameras</h2>
-        <p class="muted">Everyone stands in a curve around the subject. A countdown runs on every phone and all of them capture the same instant.</p>
+        <p class="muted">
+          Everyone stands in a curve around the subject. A countdown runs on every phone and all of them capture the same instant.
+        </p>
       </div>
       <div class="notice info">
-        <strong>Your privacy:</strong> your photo is sent only to the host's phone, and the finished clip comes back to the people in this moment.
-        Nothing is uploaded to a server. Please make sure the person you're filming is happy to be filmed.
+        <strong>Your privacy:</strong> your photo is sent only to the host's phone, and the finished clip comes back to the people in this
+        moment. Nothing is uploaded to a server. Please make sure the person you're filming is happy to be filmed.
       </div>
       <form
         class="stack"
@@ -66,7 +68,14 @@ function ConsentForm({ ctl }: { ctl: ShooterController }) {
       >
         <div class="field">
           <label for="name">Your name (so the host can place you)</label>
-          <input id="name" class="input" maxLength={24} autoComplete="nickname" value={name} onInput={(e) => setName((e.currentTarget as HTMLInputElement).value)} />
+          <input
+            id="name"
+            class="input"
+            maxLength={24}
+            autoComplete="nickname"
+            value={name}
+            onInput={(e) => setName((e.currentTarget as HTMLInputElement).value)}
+          />
         </div>
         {ctl.error.value && <div class="notice error">{ctl.error.value}</div>}
         <button class="btn primary big block" disabled={busy}>
@@ -114,7 +123,12 @@ function ShooterView({ ctl }: { ctl: ShooterController }) {
         <TopBar title="Your frozen moment" />
         <video class="clip" src={url} autoplay loop muted playsInline controls aria-label="The finished clip" />
         <div class="bottom-actions">
-          <button class="btn primary big block" onClick={() => void shareFile(new Blob([result.data as BlobPart], { type: result.mime }), result.name, 'Made with Frozen Moment')}>
+          <button
+            class="btn primary big block"
+            onClick={() =>
+              void shareFile(new Blob([result.data as BlobPart], { type: result.mime }), result.name, 'Made with Frozen Moment')
+            }
+          >
             Share
           </button>
           <button class="btn block" onClick={() => download(new Blob([result.data as BlobPart], { type: result.mime }), result.name)}>
@@ -132,17 +146,23 @@ function ShooterView({ ctl }: { ctl: ShooterController }) {
     phase === 'sending' ? (
       <div class="glass stack" role="status">
         <strong>Got it! Sending your photo to the host…</strong>
-        <Bar value={s.sendProgress.value} label="Sending" />
-        {report?.errorMs !== undefined && <span class="muted small">Your frame was {Math.abs(report.errorMs).toFixed(0)} ms from the moment.</span>}
+        <Bar fill value={s.sendProgress.value} label="Sending" />
+        {report?.errorMs !== undefined && (
+          <span class="muted small">Your frame was {Math.abs(report.errorMs).toFixed(0)} ms from the moment.</span>
+        )}
       </div>
     ) : phase === 'waiting' ? (
       <div class="glass stack" role="status">
         <strong>Sent. The host is making the clip…</strong>
         {s.resultProgress.value !== null ? (
-          <Bar value={s.resultProgress.value} label="Receiving the clip" />
+          <Bar fill value={s.resultProgress.value} label="Receiving the clip" />
         ) : (
           <span class="muted small">
-            {s.hostStage.value === 'rendering' ? 'Rendering…' : s.hostStage.value === 'editing' ? 'Lining up the photos…' : 'Hang on — the clip will appear here.'}
+            {s.hostStage.value === 'rendering'
+              ? 'Rendering…'
+              : s.hostStage.value === 'editing'
+                ? 'Lining up the photos…'
+                : 'Hang on — the clip will appear here.'}
           </span>
         )}
       </div>

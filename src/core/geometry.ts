@@ -129,15 +129,7 @@ export interface RansacResult {
 
 export function ransacSimilarity(src: ArrayLike<number>, dst: ArrayLike<number>, opts: RansacOptions = {}): RansacResult | null {
   const n = src.length / 2;
-  const {
-    threshold = 3,
-    iterations = 800,
-    minInliers = 6,
-    confidence = 0.999,
-    scaleRange = [0.25, 4],
-    weights,
-    rng = Math.random,
-  } = opts;
+  const { threshold = 3, iterations = 800, minInliers = 6, confidence = 0.999, scaleRange = [0.25, 4], weights, rng = Math.random } = opts;
   if (n < 2) return null;
   const thr2 = threshold * threshold;
   let bestScore = -1;
@@ -174,7 +166,12 @@ export function ransacSimilarity(src: ArrayLike<number>, dst: ArrayLike<number>,
     const b = (dy * sx - dx * sy) / d2;
     const sc = Math.hypot(a, b);
     if (sc < scaleRange[0] || sc > scaleRange[1]) continue;
-    const s: Sim = { a, b, tx: dst[2 * i] - (a * src[2 * i] - b * src[2 * i + 1]), ty: dst[2 * i + 1] - (b * src[2 * i] + a * src[2 * i + 1]) };
+    const s: Sim = {
+      a,
+      b,
+      tx: dst[2 * i] - (a * src[2 * i] - b * src[2 * i + 1]),
+      ty: dst[2 * i + 1] - (b * src[2 * i] + a * src[2 * i + 1]),
+    };
     const sc2 = score(s);
     if (sc2 > bestScore) {
       bestScore = sc2;

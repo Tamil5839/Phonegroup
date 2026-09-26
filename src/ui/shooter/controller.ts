@@ -79,9 +79,25 @@ export class ShooterController {
     }
     this.session = session;
     const cam = this.camera!;
-    session.setCameraStatus({ state: 'ready', width: cam.width, height: cam.height, fps: cam.fps, timestampSource: this.capture!.timestampSource });
+    session.setCameraStatus({
+      state: 'ready',
+      width: cam.width,
+      height: cam.height,
+      fps: cam.fps,
+      timestampSource: this.capture!.timestampSource,
+    });
     // Report where frame timestamps come from once frames have flowed for a moment.
-    setTimeout(() => session.setCameraStatus({ state: 'ready', width: this.video.videoWidth, height: this.video.videoHeight, fps: cam.fps, timestampSource: this.capture!.timestampSource }), 2000);
+    setTimeout(
+      () =>
+        session.setCameraStatus({
+          state: 'ready',
+          width: this.video.videoWidth,
+          height: this.video.videoHeight,
+          fps: cam.fps,
+          timestampSource: this.capture!.timestampSource,
+        }),
+      2000,
+    );
     this.unsubs.push(
       session.countdown.subscribe((c) => {
         this.cancelSounds?.();

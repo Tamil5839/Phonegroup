@@ -88,10 +88,8 @@ function twoOpt(order: number[], sim: readonly (readonly number[])[]): void {
     for (let i = 0; i < n - 1; i++) {
       for (let j = i + 1; j < n; j++) {
         // Reversing order[i..j] changes the edges (i−1,i) and (j,j+1).
-        const before =
-          (i > 0 ? sim[order[i - 1]][order[i]] : 0) + (j < n - 1 ? sim[order[j]][order[j + 1]] : 0);
-        const after =
-          (i > 0 ? sim[order[i - 1]][order[j]] : 0) + (j < n - 1 ? sim[order[i]][order[j + 1]] : 0);
+        const before = (i > 0 ? sim[order[i - 1]][order[i]] : 0) + (j < n - 1 ? sim[order[j]][order[j + 1]] : 0);
+        const after = (i > 0 ? sim[order[i - 1]][order[j]] : 0) + (j < n - 1 ? sim[order[i]][order[j + 1]] : 0);
         if (after > before + 1e-9) {
           for (let a = i, b = j; a < b; a++, b--) [order[a], order[b]] = [order[b], order[a]];
           improved = true;

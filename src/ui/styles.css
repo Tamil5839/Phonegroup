@@ -611,6 +611,42 @@ input[type='range'] {
   margin-top: 4px;
 }
 
+.row-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+}
+
+.row-actions .updown {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.row-actions .updown button {
+  appearance: none;
+  width: 34px;
+  height: 24px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  font-size: 12px;
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
+}
+
+.row-actions .updown button:disabled {
+  opacity: 0.3;
+}
+
+.row-actions .icon-btn {
+  width: 38px;
+  height: 38px;
+  font-size: 15px;
+}
+
 .grip {
   cursor: grab;
   color: var(--faint);
@@ -679,6 +715,8 @@ input[type='range'] {
 .aim-overlay {
   position: fixed;
   inset: 0;
+  width: 100%;
+  height: 100%;
   z-index: 1;
   pointer-events: none;
 }
@@ -710,6 +748,8 @@ input[type='range'] {
   place-items: center;
   pointer-events: none;
   text-align: center;
+  /* A soft scrim keeps the numbers readable over bright camera images. */
+  background: radial-gradient(closest-side, rgba(7, 8, 10, 0.55), rgba(7, 8, 10, 0) 100%);
 }
 
 .countdown .num {
@@ -717,7 +757,11 @@ input[type='range'] {
   font-weight: 900;
   line-height: 1;
   color: var(--text);
-  text-shadow: 0 0 60px rgba(61, 224, 255, 0.45);
+  -webkit-text-stroke: 3px rgba(7, 8, 10, 0.55);
+  paint-order: stroke fill;
+  text-shadow:
+    0 4px 30px rgba(0, 0, 0, 0.55),
+    0 0 70px rgba(61, 224, 255, 0.5);
   font-variant-numeric: tabular-nums;
 }
 
@@ -739,8 +783,9 @@ input[type='range'] {
 .countdown .caption {
   font-size: 22px;
   font-weight: 700;
-  color: var(--muted);
+  color: var(--text);
   letter-spacing: 0.02em;
+  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.8);
 }
 
 .countdown.compact .num {
@@ -871,6 +916,16 @@ input[type='range'] {
   text-align: center;
   font-weight: 700;
   font-size: 15px;
+}
+
+.picker-hint {
+  text-align: center;
+  font-weight: 700;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-soft);
+  color: var(--accent);
+  margin-bottom: 8px;
 }
 
 .picker {

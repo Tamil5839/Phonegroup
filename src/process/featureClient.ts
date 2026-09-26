@@ -51,7 +51,9 @@ export class FeatureClient {
   async detect(id: string, image: GrayImage, nfeatures = 2000): Promise<number> {
     await this.init();
     const data = image.data.slice();
-    const res = await this.request({ type: 'detect', id, image: { data, width: image.width, height: image.height }, nfeatures }, [data.buffer]);
+    const res = await this.request({ type: 'detect', id, image: { data, width: image.width, height: image.height }, nfeatures }, [
+      data.buffer,
+    ]);
     return res.type === 'ok' ? (res.count ?? 0) : 0;
   }
 

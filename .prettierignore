@@ -1,0 +1,6 @@
+dist
+dist-e2e
+node_modules
+e2e/artifacts
+public/icons
+package-lock.json

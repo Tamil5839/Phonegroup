@@ -13,7 +13,6 @@ function PreviewPlayer({ project, mode, onDrag }: { project: Project; mode: Prev
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rendererRef = useRef<FrameRenderer | null>(null);
   const dirty = useRef(0);
-  const [marker, setMarker] = useState<Pt | null>(null);
 
   useEffect(() => {
     rendererRef.current = createRenderer(canvasRef.current!);
@@ -36,18 +35,17 @@ function PreviewPlayer({ project, mode, onDrag }: { project: Project; mode: Prev
     dirty.current++;
   });
 
-  // Where the subject should sit in the output (for the adjust marker).
-  useSignalEffect(() => {
+  // Where the subject sits in the output (shown while adjusting one frame).
+  const marker = ((): Pt | null => {
     const al = project.alignment.value;
-    const frames = project.ordered.value;
-    const plan = project.plan.value;
-    if (mode.kind !== 'frame' || !al) return setMarker(null);
-    const f = frames[mode.index];
+    if (mode.kind !== 'frame' || !al) return null;
+    const f = project.ordered.value[mode.index];
     const a = f && al[f.id];
-    if (!a) return setMarker(null);
+    if (!a) return null;
+    const plan = project.plan.value;
     const p = simApply(plan.transforms[mode.index], a.point.x, a.point.y);
-    setMarker({ x: p.x / plan.width, y: p.y / plan.height });
-  });
+    return { x: p.x / plan.width, y: p.y / plan.height };
+  })();
 
   useEffect(() => {
     let raf = 0;
@@ -127,23 +125,27 @@ function SubjectPicker({ frame, point, onPick, hint }: { frame: ProjectFrame; po
     }
   }, [frame, point]);
   return (
-    <div class="picker">
-      <canvas
-        ref={ref}
-        aria-label={`${frame.name}: tap the subject`}
-        onPointerUp={(e) => {
-          const c = e.currentTarget as HTMLCanvasElement;
-          const r = c.getBoundingClientRect();
-          // object-fit: contain — find the drawn image box inside the element.
-          const k = Math.min(r.width / c.width, r.height / c.height);
-          const w = c.width * k;
-          const h = c.height * k;
-          const x = (e.clientX - r.left - (r.width - w) / 2) / k;
-          const y = (e.clientY - r.top - (r.height - h) / 2) / k;
-          if (x >= 0 && y >= 0 && x <= c.width && y <= c.height) onPick({ x, y });
-        }}
-      />
-      <div class="preview-hint glass">{hint}</div>
+    <div>
+      <div class="picker-hint" role="status">
+        {hint}
+      </div>
+      <div class="picker">
+        <canvas
+          ref={ref}
+          aria-label={`${frame.name}: tap the subject`}
+          onPointerUp={(e) => {
+            const c = e.currentTarget as HTMLCanvasElement;
+            const r = c.getBoundingClientRect();
+            // object-fit: contain — find the drawn image box inside the element.
+            const k = Math.min(r.width / c.width, r.height / c.height);
+            const w = c.width * k;
+            const h = c.height * k;
+            const x = (e.clientX - r.left - (r.width - w) / 2) / k;
+            const y = (e.clientY - r.top - (r.height - h) / 2) / k;
+            if (x >= 0 && y >= 0 && x <= c.width && y <= c.height) onPick({ x, y });
+          }}
+        />
+      </div>
     </div>
   );
 }
@@ -254,7 +256,11 @@ function FramePanel({
       <div class="row">
         <h3 style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{frame.name}</h3>
         {frame.errorMs !== null && <span class="chip">{`${frame.errorMs >= 0 ? '+' : '−'}${Math.abs(frame.errorMs).toFixed(0)} ms`}</span>}
-        {al && <span class={`chip ${al.confidence === 'good' || al.confidence === 'anchor' || al.confidence === 'manual' ? 'ok' : 'warn'}`}>{al.confidence}</span>}
+        {al && (
+          <span class={`chip ${al.confidence === 'good' || al.confidence === 'anchor' || al.confidence === 'manual' ? 'ok' : 'warn'}`}>
+            {al.confidence}
+          </span>
+        )}
       </div>
       {frame.warning && <div class="notice warn small">{frame.warning}</div>}
       <button class="btn block" onClick={onPick}>
@@ -320,14 +326,27 @@ function StylePanel({ project, onImport }: { project: Project; onImport: (files:
     <div class="card panel">
       <div class="field">
         <span class="label">Style</span>
-        <Segmented label="Clip style" value={s.style} options={CLIP_STYLES.map((c) => ({ id: c.id, label: c.label }))} onChange={(style) => set({ style })} />
+        <Segmented
+          label="Clip style"
+          value={s.style}
+          options={CLIP_STYLES.map((c) => ({ id: c.id, label: c.label }))}
+          onChange={(style) => set({ style })}
+        />
         <span class="muted small">{CLIP_STYLES.find((c) => c.id === s.style)?.hint}</span>
       </div>
       <div class="field">
         <label for="fps">
           Speed: {s.fps} frames/s · clip {dur.toFixed(1)} s
         </label>
-        <input id="fps" type="range" min={12} max={18} step={1} value={s.fps} onInput={(e) => set({ fps: Number((e.currentTarget as HTMLInputElement).value) })} />
+        <input
+          id="fps"
+          type="range"
+          min={12}
+          max={18}
+          step={1}
+          value={s.fps}
+          onInput={(e) => set({ fps: Number((e.currentTarget as HTMLInputElement).value) })}
+        />
       </div>
       <div class="field">
         <label for="dur">Target length: {(s.durationMs / 1000).toFixed(1)} s</label>
@@ -353,7 +372,12 @@ function StylePanel({ project, onImport }: { project: Project; onImport: (files:
           onChange={(aspect) => set({ aspect })}
         />
       </div>
-      <Toggle label="Match colours" hint="Evens out the phones' different colours, gently" checked={s.colorMatch} onChange={(colorMatch) => set({ colorMatch })} />
+      <Toggle
+        label="Match colours"
+        hint="Evens out the phones' different colours, gently"
+        checked={s.colorMatch}
+        onChange={(colorMatch) => set({ colorMatch })}
+      />
       {s.colorMatch && (
         <div class="field">
           <label for="strength">Strength: {Math.round(s.colorStrength * 100)}%</label>
@@ -368,7 +392,12 @@ function StylePanel({ project, onImport }: { project: Project; onImport: (files:
           />
         </div>
       )}
-      <Toggle label="Level with tilt sensors" hint="Uses each phone's level reading when available" checked={s.levelWithSensors} onChange={(levelWithSensors) => set({ levelWithSensors })} />
+      <Toggle
+        label="Level with tilt sensors"
+        hint="Uses each phone's level reading when available"
+        checked={s.levelWithSensors}
+        onChange={(levelWithSensors) => set({ levelWithSensors })}
+      />
       <Toggle label="Subtle vignette" checked={s.vignette} onChange={(vignette) => set({ vignette })} />
       <Toggle label="Caption" hint={project.captionText.value} checked={s.caption} onChange={(caption) => set({ caption })} />
       <div class="row wrap">
@@ -430,7 +459,9 @@ export function EditScreen(props: EditProps) {
   const pickFrame = picking ? frames.find((f) => f.id === picking) : needSubject ? anchorFrame : null;
 
   const mode: PreviewMode =
-    selFrame && selIndex >= 0 ? { kind: 'frame', index: selIndex, blinkWith: blink ? (selIndex > 0 ? selIndex - 1 : frames.length > 1 ? 1 : null) : null } : { kind: 'play' };
+    selFrame && selIndex >= 0
+      ? { kind: 'frame', index: selIndex, blinkWith: blink ? (selIndex > 0 ? selIndex - 1 : frames.length > 1 ? 1 : null) : null }
+      : { kind: 'play' };
 
   const pickedPoint = (() => {
     if (!pickFrame) return null;
@@ -499,7 +530,14 @@ export function EditScreen(props: EditProps) {
           </div>
           <div class="stack">
             {selFrame && (
-              <FramePanel project={project} frame={selFrame} index={selIndex} blink={blink} setBlink={setBlink} onPick={() => setPicking(selFrame.id)} />
+              <FramePanel
+                project={project}
+                frame={selFrame}
+                index={selIndex}
+                blink={blink}
+                setBlink={setBlink}
+                onPick={() => setPicking(selFrame.id)}
+              />
             )}
             <StylePanel project={project} onImport={props.onImport} />
           </div>
@@ -520,7 +558,11 @@ export function EditScreen(props: EditProps) {
             Create clip
           </button>
         )}
-        {!subject && frames.length >= 2 && <p class="muted small" style={{ textAlign: 'center' }}>Tip: tap the subject first so it stays put while the view sweeps.</p>}
+        {!subject && frames.length >= 2 && (
+          <p class="muted small" style={{ textAlign: 'center' }}>
+            Tip: tap the subject first so it stays put while the view sweeps.
+          </p>
+        )}
       </div>
     </main>
   );

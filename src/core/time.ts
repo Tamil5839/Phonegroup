@@ -18,8 +18,7 @@ export const perfToLocal = (t: number): number => performance.timeOrigin + t;
 /** Convert a `localNow`-based time back to a DOMHighResTimeStamp. */
 export const localToPerf = (t: number): number => t - performance.timeOrigin;
 
-export const sleep = (ms: number): Promise<void> =>
-  new Promise((resolve) => setTimeout(resolve, Math.max(0, ms)));
+export const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, Math.max(0, ms)));
 
 export function median(values: readonly number[]): number {
   if (values.length === 0) return NaN;

@@ -59,9 +59,7 @@ export function estimateOffset(
   samples: readonly SyncSample[],
   { keepFraction = 0.3, minKeep = 5 }: EstimateOptions = {},
 ): SyncEstimate | null {
-  const valid = samples
-    .map(sampleOffset)
-    .filter((s) => Number.isFinite(s.offset) && Number.isFinite(s.rtt));
+  const valid = samples.map(sampleOffset).filter((s) => Number.isFinite(s.offset) && Number.isFinite(s.rtt));
   if (valid.length === 0) return null;
   valid.sort((a, b) => a.rtt - b.rtt);
   const keep = Math.min(valid.length, Math.max(minKeep, Math.round(valid.length * keepFraction)));
@@ -104,19 +102,8 @@ export class SyncError extends Error {}
 const defaultWait = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
 /** Run a full sync exchange from the shooter side. */
-export async function runClockSync(
-  transport: SyncTransport,
-  clock: Clock,
-  opts: SyncRunOptions = {},
-): Promise<SyncEstimate> {
-  const {
-    count = 32,
-    intervalMs = 25,
-    settleMs = 600,
-    minReplies = 8,
-    signal,
-    wait = defaultWait,
-  } = opts;
+export async function runClockSync(transport: SyncTransport, clock: Clock, opts: SyncRunOptions = {}): Promise<SyncEstimate> {
+  const { count = 32, intervalMs = 25, settleMs = 600, minReplies = 8, signal, wait = defaultWait } = opts;
   const sent = new Map<number, number>();
   const samples: SyncSample[] = [];
   let outstanding = 0;

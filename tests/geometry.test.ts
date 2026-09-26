@@ -138,7 +138,8 @@ describe('largest common crop', () => {
       const rect = largestCommonCrop(polys, { aspect, prefer: { x: 0, y: 0 }, centerTolerance: 1 })!;
       expect(rect).not.toBeNull();
       expect(rect.w / rect.h).toBeCloseTo(aspect, 6);
-      for (const poly of polys) expect(rectInsidePolygon(rect, poly, 1e-6), `trial ${trial} ${JSON.stringify(rect)} ${JSON.stringify(poly)}`).toBe(true);
+      for (const poly of polys)
+        expect(rectInsidePolygon(rect, poly, 1e-6), `trial ${trial} ${JSON.stringify(rect)} ${JSON.stringify(poly)}`).toBe(true);
       // Brute force over centres: nothing much bigger fits.
       let bestH = 0;
       for (let cx = -600; cx <= 600; cx += 15) {

@@ -29,7 +29,11 @@ class ManualShooterController {
   readonly error = signal<string | null>(null);
   /** hostTime ≈ localTime + offset */
   readonly offset = signal(Date.now() - localNow());
-  readonly optical = signal<{ state: 'idle' | 'reading' | 'locked' | 'failed'; samples: number; spread: number | null }>({ state: 'idle', samples: 0, spread: null });
+  readonly optical = signal<{ state: 'idle' | 'reading' | 'locked' | 'failed'; samples: number; spread: number | null }>({
+    state: 'idle',
+    samples: 0,
+    spread: null,
+  });
   readonly photo = signal<Photo | null>(null);
   readonly video: HTMLVideoElement;
   private camera: CameraHandle | null = null;
@@ -148,7 +152,11 @@ class ManualShooterController {
 
   fileName(): string {
     const pos = this.position ? `-pos${String(this.position).padStart(2, '0')}` : '';
-    const safe = this.name.replace(/[^\w-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 20) || 'shooter';
+    const safe =
+      this.name
+        .replace(/[^\w-]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .slice(0, 20) || 'shooter';
     return `frozen-${this.code}${pos}-${safe}.jpg`;
   }
 
@@ -181,8 +189,8 @@ export function ManualShooter({ code, moment, epoch }: { code: string; moment: n
           <div class="eyebrow">Manual mode</div>
           <h2>{remaining > 0 ? `The moment is in ${Math.ceil(remaining / 1000)} s` : 'This moment has passed'}</h2>
           <p class="muted">
-            Your phone counts down on its own clock and keeps the frame at the moment. Afterwards, send the photo to the host with any messaging
-            app.
+            Your phone counts down on its own clock and keeps the frame at the moment. Afterwards, send the photo to the host with any
+            messaging app.
           </p>
         </div>
         <div class="notice info small">
@@ -197,7 +205,13 @@ export function ManualShooter({ code, moment, epoch }: { code: string; moment: n
         >
           <div class="field">
             <label for="mname">Your name</label>
-            <input id="mname" class="input" maxLength={24} value={name} onInput={(e) => setName((e.currentTarget as HTMLInputElement).value)} />
+            <input
+              id="mname"
+              class="input"
+              maxLength={24}
+              value={name}
+              onInput={(e) => setName((e.currentTarget as HTMLInputElement).value)}
+            />
           </div>
           <div class="field">
             <label for="mpos">Your place in the curve (from the left)</label>
@@ -218,8 +232,8 @@ export function ManualShooter({ code, moment, epoch }: { code: string; moment: n
         <details class="card">
           <summary>Can't use the camera here?</summary>
           <p class="muted small" style={{ marginTop: 8 }}>
-            Record a video with your normal camera app from about 5 seconds before the moment until 5 seconds after, then send it to the host.
-            The host's phone plays a chirp at the moment, and the app finds your frame from it.
+            Record a video with your normal camera app from about 5 seconds before the moment until 5 seconds after, then send it to the
+            host. The host's phone plays a chirp at the moment, and the app finds your frame from it.
           </p>
         </details>
       </main>
@@ -232,13 +246,15 @@ export function ManualShooter({ code, moment, epoch }: { code: string; moment: n
         <TopBar title="Captured" />
         <img class="clip" src={photo.url} alt="Your frame of the moment" />
         <p class="muted small">
-          {optical.state === 'locked' ? 'Timed with the host screen’s clock.' : 'Timed with your phone’s own clock.'} Frame {Math.abs(photo.errorMs).toFixed(0)} ms
-          from the moment.
+          {optical.state === 'locked' ? 'Timed with the host screen’s clock.' : 'Timed with your phone’s own clock.'} Frame{' '}
+          {Math.abs(photo.errorMs).toFixed(0)} ms from the moment.
         </p>
         <div class="bottom-actions">
           <button
             class="btn primary big block"
-            onClick={() => void shareFile(new Blob([photo.bytes as BlobPart], { type: 'image/jpeg' }), ctl.fileName(), 'My frame for the frozen moment')}
+            onClick={() =>
+              void shareFile(new Blob([photo.bytes as BlobPart], { type: 'image/jpeg' }), ctl.fileName(), 'My frame for the frozen moment')
+            }
           >
             Send to host
           </button>

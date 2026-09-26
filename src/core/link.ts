@@ -137,10 +137,7 @@ class MemoryLink implements Link {
 }
 
 /** Create two connected in-memory links. `aToB` configures messages sent by the first link. */
-export function createMemoryLinkPair(
-  aToB: MemoryLinkOptions = {},
-  bToA: MemoryLinkOptions = {},
-): [Link, Link] {
+export function createMemoryLinkPair(aToB: MemoryLinkOptions = {}, bToA: MemoryLinkOptions = {}): [Link, Link] {
   const n = ++memoryLinkCounter;
   const a = new MemoryLink(`mem-${n}-a`, { opts: aToB, lastDelivery: 0, busyUntil: 0, queued: 0 });
   const b = new MemoryLink(`mem-${n}-b`, { opts: bToA, lastDelivery: 0, busyUntil: 0, queued: 0 });

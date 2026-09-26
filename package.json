@@ -10,7 +10,10 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "format": "prettier --write .",
+    "lint": "prettier --check . && tsc --noEmit",
+    "e2e": "node e2e/run.mjs"
   },
   "dependencies": {
     "@preact/signals": "^2.11.2",
@@ -29,6 +32,7 @@
     "@vitejs/plugin-basic-ssl": "^2.3.0",
     "peer": "^1.0.2",
     "playwright": "^1.63.0",
+    "prettier": "^3.9.9",
     "typescript": "^7.0.2",
     "vite": "^8.3.1",
     "vitest": "^5.0.2"

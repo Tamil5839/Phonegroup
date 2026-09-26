@@ -26,7 +26,6 @@ export interface MatchSet {
 }
 
 // OpenCV.js has no TypeScript types worth using here.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type CV = any;
 
 export function detectOrb(cv: CV, img: GrayImage, nfeatures = 2000): FeatureSet {

@@ -103,7 +103,7 @@ describe('TransferEndpoint', () => {
 
   it('recovers from corrupted chunks by asking for them again', async () => {
     let seed = 99;
-    const rng = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+    const rng = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
     const { sender, receiver, received } = setup({ corruptRate: 0.2, rng }, {});
     const data = randomBytes(64 * 1024, 7);
     let corrupt = 0;
@@ -121,7 +121,7 @@ describe('TransferEndpoint', () => {
 
   it('retries when messages are lost', async () => {
     let seed = 5;
-    const rng = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+    const rng = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
     const { sender, received } = setup({ dropRate: 0.15, rng }, { dropRate: 0.15, rng });
     const data = randomBytes(40 * 1024, 11);
     const tx = sender.send(data, { kind: 'frame' });

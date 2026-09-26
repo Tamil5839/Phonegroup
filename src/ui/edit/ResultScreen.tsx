@@ -53,9 +53,15 @@ export function ResultScreen({
           </div>
           {entries.map(([id, d]) => (
             <div key={id} class="row small">
-              <span style={{ width: 110, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{names.get(id) ?? 'Phone'}</span>
+              <span style={{ flex: 'none', width: 110, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {names.get(id) ?? 'Phone'}
+              </span>
               <div style={{ flex: 1 }}>
-                {d.state === 'failed' ? <span class="chip bad">Not delivered</span> : <Bar value={d.progress} label={`Sending to ${names.get(id) ?? 'phone'}`} />}
+                {d.state === 'failed' ? (
+                  <span class="chip bad">Not delivered</span>
+                ) : (
+                  <Bar fill value={d.progress} label={`Sending to ${names.get(id) ?? 'phone'}`} />
+                )}
               </div>
             </div>
           ))}

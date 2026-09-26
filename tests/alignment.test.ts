@@ -15,13 +15,11 @@ import {
 } from '../src/core/geometry';
 import { detectOrb, matchFeatures, type GrayImage } from '../src/process/features';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let cv: any;
 
 beforeAll(async () => {
   // The emscripten module is a "thenable" that resolves to itself, so it must never be awaited
   // (that includes `await import()`, whose namespace re-exports `then`). Load it with require.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const mod = createRequire(import.meta.url)('@techstark/opencv-js') as any;
   if (!mod.Mat) await new Promise<void>((resolve) => (mod.onRuntimeInitialized = () => resolve()));
   cv = mod;

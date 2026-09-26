@@ -1,3 +1,4 @@
+import { Fragment } from 'preact';
 import { useMemo } from 'preact/hooks';
 import { errorSpread } from '../../core/frames';
 import { encodePayload } from '../../process/timecodeReader';
@@ -31,8 +32,8 @@ function Results({ ctl, rows }: { ctl: HostController; rows: SyncRow[] }) {
           <span class="mono">{worst === null ? '—' : `${worst.toFixed(0)} ms`}</span>
         </div>
         <p class="muted small">
-          Measured = the time actually shown in each phone's photo of this screen, minus the target. It includes this screen's own display delay
-          (the same for every phone), so the spread between phones is the number that matters. One video frame is ~33 ms at 30 fps.
+          Measured = the time actually shown in each phone's photo of this screen, minus the target. It includes this screen's own display
+          delay (the same for every phone), so the spread between phones is the number that matters. One video frame is ~33 ms at 30 fps.
         </p>
       </div>
       <div class="card" style={{ overflowX: 'auto' }}>
@@ -47,15 +48,27 @@ function Results({ ctl, rows }: { ctl: HostController; rows: SyncRow[] }) {
           </thead>
           <tbody>
             {rows.map((r) => (
-              <tr key={r.id}>
-                <td>
-                  {r.name}
-                  {r.error && <div class="small" style={{ color: 'var(--warn)' }}>{r.error}</div>}
-                </td>
-                <td class="num">{fmt(r.measuredMs)}</td>
-                <td class="num">{fmt(r.reportedMs)}</td>
-                <td class="num">{r.uncertainty === null ? '—' : `${r.uncertainty.toFixed(0)} ms`}</td>
-              </tr>
+              <Fragment key={r.id}>
+                <tr>
+                  <td style={r.error ? { borderBottom: 0 } : undefined}>{r.name}</td>
+                  <td class="num" style={r.error ? { borderBottom: 0 } : undefined}>
+                    {fmt(r.measuredMs)}
+                  </td>
+                  <td class="num" style={r.error ? { borderBottom: 0 } : undefined}>
+                    {fmt(r.reportedMs)}
+                  </td>
+                  <td class="num" style={r.error ? { borderBottom: 0 } : undefined}>
+                    {r.uncertainty === null ? '—' : `${r.uncertainty.toFixed(0)} ms`}
+                  </td>
+                </tr>
+                {r.error && (
+                  <tr>
+                    <td colSpan={4} class="small" style={{ color: 'var(--warn)', paddingTop: 0 }}>
+                      {r.error}
+                    </td>
+                  </tr>
+                )}
+              </Fragment>
             ))}
           </tbody>
         </table>

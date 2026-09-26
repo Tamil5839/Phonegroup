@@ -15,7 +15,6 @@ export type WorkerResponse =
   | { type: 'matched'; reqId: number; src: Float32Array; dst: Float32Array; count: number }
   | { type: 'error'; reqId: number; message: string };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type CV = any;
 
 const scope = self as unknown as {

@@ -6,7 +6,15 @@
  * through `drawItem`, so what you preview is what you export.
  */
 import { batch, computed, signal } from '@preact/signals-core';
-import { alignChain, planCenterCrop, planOutput, type AspectChoice, type FrameAlignment, type OutputPlan, type PairMatches } from '../core/align';
+import {
+  alignChain,
+  planCenterCrop,
+  planOutput,
+  type AspectChoice,
+  type FrameAlignment,
+  type OutputPlan,
+  type PairMatches,
+} from '../core/align';
 import { buildMatchLuts, computeStats, medianReference, type ColorStats } from '../core/color';
 import { simCompose, type Pt, type Sim } from '../core/geometry';
 import { bestPath, orientLike } from '../core/order';
@@ -78,7 +86,9 @@ export class Project {
   readonly alignment = signal<Record<string, FrameAlignment> | null>(null);
   readonly busy = signal<{ label: string; progress: number } | null>(null);
   readonly alignNote = signal<string | null>(null);
-  readonly captionText = signal(`Frozen moment · ${new Date().toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}`);
+  readonly captionText = signal(
+    `Frozen moment · ${new Date().toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}`,
+  );
 
   private readonly features = new FeatureClient();
   private readonly detected = new Set<string>();
@@ -90,7 +100,10 @@ export class Project {
   readonly ordered = computed(() => {
     const byId = new Map(this.frames.value.map((f) => [f.id, f]));
     const skip = new Set(this.excluded.value);
-    return this.order.value.filter((id) => !skip.has(id)).map((id) => byId.get(id)).filter((f): f is ProjectFrame => !!f);
+    return this.order.value
+      .filter((id) => !skip.has(id))
+      .map((id) => byId.get(id))
+      .filter((f): f is ProjectFrame => !!f);
   });
 
   readonly plan = computed<OutputPlan>(() => {
@@ -228,7 +241,12 @@ export class Project {
     const cur = this.adjustments.value[frameId] ?? { a: 1, b: 0, tx: 0, ty: 0 };
     const scale = change.zoom ?? 1;
     const ang = change.rotate ?? 0;
-    const step: Sim = { a: scale * Math.cos(ang), b: scale * Math.sin(ang), tx: (change.dx ?? 0) * perOutputPx, ty: (change.dy ?? 0) * perOutputPx };
+    const step: Sim = {
+      a: scale * Math.cos(ang),
+      b: scale * Math.sin(ang),
+      tx: (change.dx ?? 0) * perOutputPx,
+      ty: (change.dy ?? 0) * perOutputPx,
+    };
     this.adjustments.value = { ...this.adjustments.value, [frameId]: simCompose(step, cur) };
   }
 
@@ -344,7 +362,8 @@ export class Project {
     if (run !== this.alignRun) return;
     const result = alignChain(geoms, { index: anchor, point: subject.point }, pairs, opts);
     const unsure = frames.filter((_, i) => result[i].confidence === 'failed' || result[i].confidence === 'weak').map((f) => f.name);
-    if (!note && unsure.length) note = `Check ${unsure.join(', ')}: few matching details were found, so their alignment is a guess. Tap one to fix it.`;
+    if (!note && unsure.length)
+      note = `Check ${unsure.join(', ')}: few matching details were found, so their alignment is a guess. Tap one to fix it.`;
     batch(() => {
       this.alignment.value = Object.fromEntries(frames.map((f, i) => [f.id, result[i]]));
       this.alignNote.value = note;
@@ -367,7 +386,10 @@ export class Project {
           sim[i][j] = sim[j][i] = (await this.matches(frames[i], frames[j])).count;
         }
       }
-      const path = orientLike(bestPath(sim), frames.map((_, i) => i));
+      const path = orientLike(
+        bestPath(sim),
+        frames.map((_, i) => i),
+      );
       const excluded = this.order.value.filter((id) => this.excluded.value.includes(id));
       this.setOrder([...path.map((i) => frames[i].id), ...excluded]);
     } catch (err) {
@@ -421,7 +443,14 @@ export class Project {
     const r = createRenderer(canvas);
     try {
       this.prepare(r);
-      return await exportClip({ canvas, timeline: this.timeline.value, draw: (item) => this.drawItem(r, item), onProgress, signal, methods });
+      return await exportClip({
+        canvas,
+        timeline: this.timeline.value,
+        draw: (item) => this.drawItem(r, item),
+        onProgress,
+        signal,
+        methods,
+      });
     } finally {
       r.dispose();
     }

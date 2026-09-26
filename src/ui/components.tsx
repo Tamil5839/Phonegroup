@@ -28,10 +28,18 @@ export function QRCode({ value, label, level = 'M' }: { value: string; label: st
 
 /* ------------------------------ progress ------------------------------ */
 
-export function Bar({ value, label }: { value: number; label: string }) {
+export function Bar({ value, label, fill = false }: { value: number; label: string; fill?: boolean }) {
   const pct = Math.round(Math.max(0, Math.min(1, value)) * 100);
   return (
-    <div class="bar" role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct}>
+    <div
+      class="bar"
+      style={fill ? { width: '100%' } : undefined}
+      role="progressbar"
+      aria-label={label}
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-valuenow={pct}
+    >
       <span style={{ width: `${pct}%` }} />
     </div>
   );
@@ -42,7 +50,13 @@ export function Ring({ value, size = 120, children }: { value: number; size?: nu
   const c = 2 * Math.PI * r;
   const v = Math.max(0, Math.min(1, value));
   return (
-    <div style={{ position: 'relative', width: size, height: size }} role="progressbar" aria-valuenow={Math.round(v * 100)} aria-valuemin={0} aria-valuemax={100}>
+    <div
+      style={{ position: 'relative', width: size, height: size }}
+      role="progressbar"
+      aria-valuenow={Math.round(v * 100)}
+      aria-valuemin={0}
+      aria-valuemax={100}
+    >
       <svg viewBox="0 0 120 120" width={size} height={size}>
         <circle cx="60" cy="60" r={r} fill="none" stroke="var(--surface-3)" stroke-width="8" />
         <circle
@@ -77,7 +91,15 @@ function labelFor(remaining: number): string {
  * the shared moment converted to its own clock, so the numbers change at the
  * same instant everywhere.
  */
-export function Countdown({ targetLocal, compact = false, holdText = 'Hold still…' }: { targetLocal: number; compact?: boolean; holdText?: string }) {
+export function Countdown({
+  targetLocal,
+  compact = false,
+  holdText = 'Hold still…',
+}: {
+  targetLocal: number;
+  compact?: boolean;
+  holdText?: string;
+}) {
   const [label, setLabel] = useState(() => labelFor(targetLocal - localNow()));
   const [flash, setFlash] = useState(false);
   useEffect(() => {
@@ -110,7 +132,11 @@ export function Countdown({ targetLocal, compact = false, holdText = 'Hold still
               {label}
             </div>
           )}
-          {label === 'hold' && <div class="caption" style={{ fontSize: 30, color: 'var(--text)' }}>{holdText}</div>}
+          {label === 'hold' && (
+            <div class="caption" style={{ fontSize: 30, color: 'var(--text)' }}>
+              {holdText}
+            </div>
+          )}
         </div>
       </div>
       {flash && !compact && <div class="flash" aria-hidden="true" />}
@@ -208,12 +234,26 @@ export function Segmented<T extends string>({
   );
 }
 
-export function Toggle({ checked, onChange, label, hint }: { checked: boolean; onChange: (v: boolean) => void; label: string; hint?: string }) {
+export function Toggle({
+  checked,
+  onChange,
+  label,
+  hint,
+}: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  label: string;
+  hint?: string;
+}) {
   return (
     <label class="toggle">
       <span>
         <span style={{ fontWeight: 600 }}>{label}</span>
-        {hint && <span class="muted small" style={{ display: 'block' }}>{hint}</span>}
+        {hint && (
+          <span class="muted small" style={{ display: 'block' }}>
+            {hint}
+          </span>
+        )}
       </span>
       <input type="checkbox" role="switch" checked={checked} onChange={(e) => onChange((e.currentTarget as HTMLInputElement).checked)} />
     </label>

@@ -24,9 +24,7 @@ describe('room codes', () => {
 describe('protocol validation', () => {
   it('accepts well-formed messages', () => {
     expect(parseShooterMessage(JSON.stringify({ t: 'ping', id: 1, t0: 5.5 }))).toEqual({ t: 'ping', id: 1, t0: 5.5 });
-    expect(
-      parseHostMessage(JSON.stringify({ t: 'countdown', captureId: 'abc', target: 123.4, mode: 'moment' })),
-    ).toBeTruthy();
+    expect(parseHostMessage(JSON.stringify({ t: 'countdown', captureId: 'abc', target: 123.4, mode: 'moment' }))).toBeTruthy();
   });
 
   it('rejects malformed or unknown messages', () => {

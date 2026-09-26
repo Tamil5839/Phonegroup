@@ -6,6 +6,7 @@
  *   4. Animated GIF (gifenc) as a last resort
  */
 import type { TimelineFrame } from '../core/sequence';
+import { setWebmDuration } from '../core/webm';
 import { timelineDuration } from '../core/sequence';
 
 export type ExportMethod = 'webcodecs' | 'webcodecs-webm' | 'mediarecorder' | 'gif';
@@ -57,12 +58,17 @@ async function viaWebCodecsWebm(job: ExportJob): Promise<ExportResult> {
   return encodeWithMediabunny(job, 'webm');
 }
 
-async function encodeWithMediabunny(job: ExportJob, container: 'mp4' | 'webm'): Promise<ExportResult> {
+/** Encode with WebCodecs and mux with Mediabunny. `codecs` overrides the codec preference (tests). */
+export async function encodeWithMediabunny(
+  job: ExportJob,
+  container: 'mp4' | 'webm',
+  codecs?: readonly ('avc' | 'vp9' | 'vp8' | 'av1')[],
+): Promise<ExportResult> {
   if (typeof VideoEncoder === 'undefined' || typeof VideoFrame === 'undefined') throw new Error('WebCodecs is not available');
   const { Output, Mp4OutputFormat, WebMOutputFormat, BufferTarget, CanvasSource, Quality, canEncodeVideo } = await import('mediabunny');
   const { width, height } = job.canvas;
   const bitrate = job.bitrate ?? 6_000_000;
-  const candidates = container === 'mp4' ? (['avc'] as const) : (['vp9', 'vp8'] as const);
+  const candidates = codecs ?? (container === 'mp4' ? (['avc'] as const) : (['vp9', 'vp8'] as const));
   let codec: (typeof candidates)[number] | null = null;
   for (const c of candidates) {
     if (await canEncodeVideo(c, { width, height, quality: new Quality({ bitrate }) })) {
@@ -106,7 +112,15 @@ async function encodeWithMediabunny(job: ExportJob, container: 'mp4' | 'webm'): 
 
 async function viaMediaRecorder(job: ExportJob): Promise<ExportResult> {
   if (typeof MediaRecorder === 'undefined' || !job.canvas.captureStream) throw new Error('MediaRecorder is not available');
-  const candidates = ['video/mp4;codecs=avc1', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'];
+  // H.264 MP4 first (plays everywhere); a bare 'video/mp4' may hold VP9 in some browsers, so it comes after WebM.
+  const candidates = [
+    'video/mp4;codecs=avc1',
+    'video/mp4;codecs=avc1.42E01E',
+    'video/webm;codecs=vp9',
+    'video/webm;codecs=vp8',
+    'video/webm',
+    'video/mp4',
+  ];
   const mime = candidates.find((m) => MediaRecorder.isTypeSupported(m));
   if (!mime) throw new Error('No recordable video format');
   const stream = job.canvas.captureStream(0);
@@ -144,8 +158,11 @@ async function viaMediaRecorder(job: ExportJob): Promise<ExportResult> {
     if (liveStream !== stream) for (const tr of stream.getTracks()) tr.stop();
   }
   const base = mime.split(';')[0];
-  const blob = new Blob(chunks, { type: base });
+  let blob = new Blob(chunks, { type: base });
   if (!blob.size) throw new Error('Recorder produced no data');
+  // Recorded WebM has no duration in its header; add it so players can show and seek it.
+  if (base === 'video/webm')
+    blob = new Blob([setWebmDuration(new Uint8Array(await blob.arrayBuffer()), total) as BlobPart], { type: base });
   return { blob, mime: base, ext: base === 'video/mp4' ? 'mp4' : 'webm', method: 'mediarecorder', durationMs: total };
 }
 

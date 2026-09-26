@@ -14,7 +14,13 @@ export function CollectArc({ entries }: { entries: FrameEntry[] }) {
         const left = 50 + Math.cos(a) * 41;
         const top = 78 - Math.sin(a) * 58;
         return (
-          <div key={f.shooterId} role="listitem" class={`slot ${f.status}`} style={{ left: `${left}%`, top: `${top}%` }} aria-label={`${f.name}: ${f.status}`}>
+          <div
+            key={f.shooterId}
+            role="listitem"
+            class={`slot ${f.status}`}
+            style={{ left: `${left}%`, top: `${top}%` }}
+            aria-label={`${f.name}: ${f.status}`}
+          >
             {f.main ? (
               <JpegThumb bytes={f.main} alt={f.name} />
             ) : f.status === 'missing' || f.status === 'failed' ? (

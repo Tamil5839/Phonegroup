@@ -8,3 +8,4 @@ e2e/artifacts/
 .DS_Store
 .vite/
 *.local
+dist-e2e/

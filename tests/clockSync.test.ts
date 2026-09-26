@@ -45,13 +45,7 @@ describe('sampleOffset / estimateOffset', () => {
 });
 
 /** A shooter/host pair on simulated clocks connected by a simulated network. */
-function simulate(opts: {
-  hostOffset: number;
-  shooterOffset: number;
-  up: MemoryLinkOptions;
-  down: MemoryLinkOptions;
-  drift?: number;
-}) {
+function simulate(opts: { hostOffset: number; shooterOffset: number; up: MemoryLinkOptions; down: MemoryLinkOptions; drift?: number }) {
   const start = Date.now();
   // Real time is the fake-timer clock; each device adds its own offset (and optional drift).
   const hostClock = () => Date.now() + opts.hostOffset;

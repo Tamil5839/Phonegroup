@@ -317,9 +317,7 @@ export class TransferEndpoint {
         this.clearTimer(tx);
         tx.queries = 0;
         if (++tx.rounds > this.opts.maxRounds) return tx.settle('failed', 'too many resend rounds');
-        const indices = (Array.isArray(msg.missing) ? msg.missing : []).filter(
-          (i) => Number.isInteger(i) && i >= 0 && i < tx.count,
-        );
+        const indices = (Array.isArray(msg.missing) ? msg.missing : []).filter((i) => Number.isInteger(i) && i >= 0 && i < tx.count);
         this.enqueue({ tx, full: false, indices });
         return;
       }

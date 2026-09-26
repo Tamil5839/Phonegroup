@@ -372,7 +372,10 @@ class Canvas2DRenderer implements FrameRenderer {
     let out = this.corrected.get(key);
     if (!out) {
       const [w, h] = sourceSize(src);
-      out = typeof OffscreenCanvas !== 'undefined' ? new OffscreenCanvas(w, h) : Object.assign(document.createElement('canvas'), { width: w, height: h });
+      out =
+        typeof OffscreenCanvas !== 'undefined'
+          ? new OffscreenCanvas(w, h)
+          : Object.assign(document.createElement('canvas'), { width: w, height: h });
       const c = out.getContext('2d') as Ctx2D;
       c.drawImage(src as CanvasImageSource, 0, 0);
       const img = c.getImageData(0, 0, w, h);

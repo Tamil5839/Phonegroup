@@ -41,9 +41,7 @@ export function HostApp({ offline = false }: { offline?: boolean }) {
       <main class="screen">
         <TopBar title="Couldn't create the moment" onBack={() => navigate('/')} />
         <div class="notice error">{ctl.error.value}</div>
-        <p class="muted">
-          The free connection service may be busy. You can retry, or use manual mode, which works without any connection.
-        </p>
+        <p class="muted">The free connection service may be busy. You can retry, or use manual mode, which works without any connection.</p>
         <div class="bottom-actions">
           <button class="btn primary block" onClick={() => void ctl.start()}>
             Try again

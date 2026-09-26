@@ -270,6 +270,7 @@ export class HostController {
     const entries = order.map((id) => frames[id]).filter((f): f is FrameEntry => !!f && f.status === 'done');
     this.project.value?.dispose();
     const project = new Project();
+    project.updateSettings({ aspect: session.settings.value.orientation === 'landscape' ? '16:9' : '9:16' });
     project.addFrames(await projectFramesFromCapture(entries, this.names()));
     this.project.value = project;
     this.view.value = 'edit';

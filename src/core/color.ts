@@ -129,7 +129,11 @@ export function quantiles(hist: Float64Array, ch: number): Float64Array {
 
 /** The "median frame": per-channel, per-quantile median across all frames. */
 export function medianReference(stats: readonly ColorStats[]): [Float64Array, Float64Array, Float64Array] {
-  const ref: [Float64Array, Float64Array, Float64Array] = [new Float64Array(QUANTILES), new Float64Array(QUANTILES), new Float64Array(QUANTILES)];
+  const ref: [Float64Array, Float64Array, Float64Array] = [
+    new Float64Array(QUANTILES),
+    new Float64Array(QUANTILES),
+    new Float64Array(QUANTILES),
+  ];
   for (let ch = 0; ch < 3; ch++) {
     const qs = stats.map((s) => quantiles(s.hist[ch], ch));
     const col = new Float64Array(qs.length);

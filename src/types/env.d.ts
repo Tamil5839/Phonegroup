@@ -9,4 +9,5 @@ interface ImportMetaEnv {
   readonly VITE_PEER_PATH?: string;
   readonly VITE_PEER_SECURE?: string;
   readonly VITE_PEER_KEY?: string;
+  readonly VITE_E2E?: string;
 }

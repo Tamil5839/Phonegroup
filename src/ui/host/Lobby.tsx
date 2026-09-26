@@ -53,13 +53,15 @@ function ShooterRow({
           {s.syncError && <span class="chip warn">Sync failed</span>}
         </div>
       </div>
-      <div class="row" style={{ gap: 4 }}>
-        <button class="icon-btn" aria-label={`Move ${s.name} left`} disabled={index === 0} onClick={() => onMove(-1)}>
-          ↑
-        </button>
-        <button class="icon-btn" aria-label={`Move ${s.name} right`} disabled={index === total - 1} onClick={() => onMove(1)}>
-          ↓
-        </button>
+      <div class="row-actions">
+        <div class="updown">
+          <button aria-label={`Move ${s.name} earlier`} disabled={index === 0} onClick={() => onMove(-1)}>
+            ▲
+          </button>
+          <button aria-label={`Move ${s.name} later`} disabled={index === total - 1} onClick={() => onMove(1)}>
+            ▼
+          </button>
+        </div>
         {!s.isHost && (
           <button class="icon-btn" aria-label={`Remove ${s.name}`} onClick={onKick}>
             ✕
@@ -184,7 +186,12 @@ export function Lobby({ ctl }: { ctl: HostController }) {
             onChange={(o) => session.updateSettings({ orientation: o })}
           />
         </div>
-        <Toggle label="Use my camera too" hint="Your phone becomes one of the cameras" checked={ctl.hostShoots.value} onChange={(on) => void ctl.setHostShoots(on)} />
+        <Toggle
+          label="Use my camera too"
+          hint="Your phone becomes one of the cameras"
+          checked={ctl.hostShoots.value}
+          onChange={(on) => void ctl.setHostShoots(on)}
+        />
         {ctl.hostShoots.value && (
           <div class="row">
             <Mount el={ctl.video} class="mini-preview" />
@@ -192,7 +199,12 @@ export function Lobby({ ctl }: { ctl: HostController }) {
           </div>
         )}
         {ctl.cameraError.value && <div class="notice error">{ctl.cameraError.value}</div>}
-        <Toggle label="Close the room" hint="No new phones can join" checked={session.locked.value} onChange={(v) => (session.locked.value = v)} />
+        <Toggle
+          label="Close the room"
+          hint="No new phones can join"
+          checked={session.locked.value}
+          onChange={(v) => (session.locked.value = v)}
+        />
       </section>
 
       {notice && (

@@ -6,15 +6,7 @@
  * Mode uses the host's own log of when each counter was drawn; optical sync
  * (manual mode, no connection) uses the formula epoch + counter × tick.
  */
-import {
-  decodeCells,
-  qrHomography,
-  sampleCells,
-  TC_MOD,
-  type LumaImage,
-  type TimecodeLog,
-  type TimecodeRead,
-} from '../core/timecode';
+import { decodeCells, qrHomography, sampleCells, TC_MOD, type LumaImage, type TimecodeLog, type TimecodeRead } from '../core/timecode';
 
 export const TC_TICK_MS = 1000 / 60;
 
@@ -92,7 +84,8 @@ function downscale(img: ImageData, maxSide: number): { data: ImageData; scale: n
 /** Find the QR code and read the counter cells. */
 export async function readTimecode(img: ImageData, maxQrSide = 1280): Promise<ImageReading | null> {
   const { fn: jsQR } = await loadJsQR();
-  const attempts = maxQrSide < Math.max(img.width, img.height) ? [maxQrSide, Math.max(img.width, img.height)] : [Math.max(img.width, img.height)];
+  const attempts =
+    maxQrSide < Math.max(img.width, img.height) ? [maxQrSide, Math.max(img.width, img.height)] : [Math.max(img.width, img.height)];
   for (const side of attempts) {
     const { data, scale } = downscale(img, side);
     const found = jsQR(data.data, data.width, data.height, { inversionAttempts: 'dontInvert' });
@@ -133,11 +126,7 @@ export interface SyncMeasurement {
 }
 
 /** Sync Test Mode: what time did this phone really capture? */
-export async function measureSyncFrame(
-  jpeg: Uint8Array,
-  log: TimecodeLog,
-  target: number,
-): Promise<SyncMeasurement | { error: string }> {
+export async function measureSyncFrame(jpeg: Uint8Array, log: TimecodeLog, target: number): Promise<SyncMeasurement | { error: string }> {
   const img = await imageDataFromJpeg(jpeg);
   const reading = await readTimecode(img);
   if (!reading) return { error: "Couldn't read the clock in this photo — point the phone straight at the host screen." };

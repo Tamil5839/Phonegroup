@@ -24,15 +24,7 @@ import type { Clock } from '../core/time';
 import { TRANSFER_CONTROL_TYPES, TransferEndpoint, type TransferControl, type TransferPort } from '../core/transfer';
 import type { CaptureDevice } from './types';
 
-export type ShooterPhase =
-  | 'connecting'
-  | 'lobby'
-  | 'countdown'
-  | 'sending'
-  | 'waiting'
-  | 'result'
-  | 'reconnecting'
-  | 'ended';
+export type ShooterPhase = 'connecting' | 'lobby' | 'countdown' | 'sending' | 'waiting' | 'result' | 'reconnecting' | 'ended';
 
 export interface ShooterDeps {
   clock: Clock;

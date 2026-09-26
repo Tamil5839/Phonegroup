@@ -49,7 +49,9 @@ export function decodeJpeg(bytes: Uint8Array, maxSide = MAX_SOURCE_SIDE): Promis
 
 async function decodeSoundtrack(file: File): Promise<{ samples: Float32Array; rate: number }> {
   const buf = await file.arrayBuffer();
-  const OAC = window.OfflineAudioContext ?? (window as unknown as { webkitOfflineAudioContext?: typeof OfflineAudioContext }).webkitOfflineAudioContext;
+  const OAC =
+    window.OfflineAudioContext ??
+    (window as unknown as { webkitOfflineAudioContext?: typeof OfflineAudioContext }).webkitOfflineAudioContext;
   if (!OAC) throw new Error('This browser cannot read audio from videos.');
   const ctx = new OAC(1, 1, ANALYSIS_RATE);
   const audio = await ctx.decodeAudioData(buf);
@@ -85,9 +87,29 @@ export async function openVideo(file: File): Promise<{ video: HTMLVideoElement; 
   };
 }
 
-/** Seek and grab the frame shown at `time` seconds. */
-export async function grabFrame(video: HTMLVideoElement, time: number): Promise<ImageBitmap> {
-  const t = Math.min(Math.max(0, time), Math.max(0, video.duration - 0.01));
+/**
+ * Some recorders (notably MediaRecorder WebM) write no duration, so the
+ * element reports Infinity until it has seen the end. Seeking far ahead makes
+ * the browser work it out; `fallback` covers the rest.
+ */
+export async function resolveDuration(video: HTMLVideoElement, fallback = 0): Promise<number> {
+  if (Number.isFinite(video.duration) && video.duration > 0) return video.duration;
+  await new Promise<void>((resolve) => {
+    const done = () => resolve();
+    video.addEventListener('durationchange', done, { once: true });
+    video.addEventListener('seeked', done, { once: true });
+    setTimeout(done, 2000);
+    video.currentTime = 1e7;
+  });
+  const d = video.duration;
+  video.currentTime = 0;
+  return Number.isFinite(d) && d > 0 ? d : fallback;
+}
+
+/** Seek and grab the frame shown at `time` seconds (clamped to `duration`). */
+export async function grabFrame(video: HTMLVideoElement, time: number, duration = video.duration): Promise<ImageBitmap> {
+  const end = Number.isFinite(duration) && duration > 0 ? duration - 0.01 : time;
+  const t = Math.min(Math.max(0, time), Math.max(0, end));
   await new Promise<void>((resolve) => {
     let done = false;
     const finish = () => {
@@ -116,23 +138,37 @@ export async function importVideo(file: File): Promise<ImportedMedia> {
   const id = `import-${++importCounter}`;
   let chirp: { time: number; score: number } | undefined;
   let warning: string | undefined;
+  let audioDuration = 0;
   try {
     const { samples, rate } = await decodeSoundtrack(file);
+    audioDuration = samples.length / rate;
     const det = detectChirp(samples, rate);
     if (det && det.score >= 0.2 && det.score > det.runnerUp * 1.4) chirp = { time: det.time, score: det.score };
-    else warning = "Couldn't hear the moment chirp in this video — check the frame, or pick it by hand.";
-  } catch {
-    warning = "Couldn't read this video's sound — pick the frame by hand.";
+    else
+      warning = `Couldn't hear the moment chirp in this video (best match ${(det?.score ?? 0).toFixed(2)}) — check the frame, or pick it by hand.`;
+  } catch (err) {
+    warning = `Couldn't read this video's sound (${(err as Error).message}) — pick the frame by hand.`;
   }
   const { video, release } = await openVideo(file);
   try {
-    const moment = chirp?.time ?? video.duration / 2;
+    const duration = await resolveDuration(video, audioDuration);
+    const moment = chirp?.time ?? duration / 2;
     const fps = 30;
     // A hair after the chirp onset lands inside the frame that was on screen at that instant.
-    const bitmap = await grabFrame(video, moment + 0.002);
+    const bitmap = await grabFrame(video, moment + 0.002, duration);
     const neighbors: Record<number, ImageBitmap> = {};
-    for (const k of [1, 2, 3]) neighbors[k] = await grabFrame(video, moment + 0.002 + k / fps);
-    return { id, name: file.name.replace(/\.[^.]+$/, ''), bitmap, neighbors, position: positionFromName(file.name), kind: 'video', chirp, warning, file };
+    for (const k of [1, 2, 3]) neighbors[k] = await grabFrame(video, moment + 0.002 + k / fps, duration);
+    return {
+      id,
+      name: file.name.replace(/\.[^.]+$/, ''),
+      bitmap,
+      neighbors,
+      position: positionFromName(file.name),
+      kind: 'video',
+      chirp,
+      warning,
+      file,
+    };
   } finally {
     release();
   }
@@ -150,7 +186,10 @@ export async function importPhoto(file: File): Promise<ImportedMedia> {
   };
 }
 
-export async function importFiles(files: File[], onProgress?: (done: number, total: number) => void): Promise<{ items: ImportedMedia[]; failed: string[] }> {
+export async function importFiles(
+  files: File[],
+  onProgress?: (done: number, total: number) => void,
+): Promise<{ items: ImportedMedia[]; failed: string[] }> {
   const items: ImportedMedia[] = [];
   const failed: string[] = [];
   let done = 0;
